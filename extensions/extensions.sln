@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Voron.Extensions.Service", "Voron.Extensions.Service\Voron.Extensions.Service.csproj", "{9212C573-9AA5-4FBF-BB50-2D0F9BAA9112}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Voron.Joystick", "src\extensions\Voron.Joystick\Voron.Joystick.csproj", "{0080ED54-BE73-4775-A151-7F4C59B32D5A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Voron.Extensibility.Abstractions", "src\Voron.Extensibility.Abstractions\Voron.Extensibility.Abstractions.csproj", "{FCAE3136-06BF-4C69-A30C-1A54CBD1DE78}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9212C573-9AA5-4FBF-BB50-2D0F9BAA9112}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9212C573-9AA5-4FBF-BB50-2D0F9BAA9112}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9212C573-9AA5-4FBF-BB50-2D0F9BAA9112}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9212C573-9AA5-4FBF-BB50-2D0F9BAA9112}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0080ED54-BE73-4775-A151-7F4C59B32D5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0080ED54-BE73-4775-A151-7F4C59B32D5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0080ED54-BE73-4775-A151-7F4C59B32D5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0080ED54-BE73-4775-A151-7F4C59B32D5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCAE3136-06BF-4C69-A30C-1A54CBD1DE78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCAE3136-06BF-4C69-A30C-1A54CBD1DE78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCAE3136-06BF-4C69-A30C-1A54CBD1DE78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCAE3136-06BF-4C69-A30C-1A54CBD1DE78}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
