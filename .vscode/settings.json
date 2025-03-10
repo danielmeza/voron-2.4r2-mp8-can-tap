@@ -3,6 +3,9 @@
         "canbus",
         "endstops",
         "gcode",
+        "Heatsoak",
+        "HOTEND",
+        "NEOPIXEL",
         "stealburner"
     ]
 }
