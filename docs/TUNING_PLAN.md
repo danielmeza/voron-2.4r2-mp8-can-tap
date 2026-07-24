@@ -102,25 +102,80 @@ mainsail says `~/printer_data/gcodes` — same place, harmless.
 
 ---
 
-## Phase 1 — Free wins aimed at the adhesion problem
+## Phase 1 — Adhesion fixes that respect a 5–10 min print workflow
 
-Do these **before** touching mechanics. Cheapest, and most likely to fix it.
+**Constraint:** typical parts print in 5–10 min, in back-to-back sessions with a
+10–15 min gap to remove the part and clean. A flat "soak 45–60 min, full mesh every
+print" tax is unacceptable — it would dwarf the print itself.
 
-- [ ] **Mesh every print.** `printing.cfg` `variable_mesh_bed_before_print: 0` → `1`.
-      Today `PRINT_START` loads a **stale saved mesh**. Ellis: *"I personally
-      recommend generating a bed mesh before every print"* because *"the bed and
-      gantry can warp with heat."* ← most likely single fix
-- [ ] **Soak longer.** Currently 15 min (>90 °C) / 10 (>65 °C) / 5. Ellis for
-      enclosed printers: *"heat soaking for **at least an hour**."* Raise to 45–60 min
-      for ABS. You already saw 15 min help — that curve is still climbing.
-- [ ] **Wash the plate** with dish soap and water, air dry. Ellis is explicit that
-      **IPA alone is insufficient** for maintenance cleaning.
+**Principle: gate on measured temperature, never on elapsed time.**
+`TEMPERATURE_WAIT` returns *immediately* if the sensor is already in range
+(verified in `klippy/extras/heaters.py` — it also accepts any passive
+`temperature_sensor`, not just heaters). So one macro serves both cases: a cold
+machine waits as long as it needs, a warm machine waits zero seconds. This is
+strictly better than tracking "time since last print", because it measures the
+physical quantity that actually matters instead of a proxy for it.
+
+What actually moves Z is **frame/gantry metal temperature**, not chamber air and
+not the clock.
+
+### Tier A — no hardware, do now
+
+- [ ] **Adaptive meshing.** `BED_MESH_CALIBRATE ADAPTIVE=1 ADAPTIVE_MARGIN=5`
+      (supported in your v0.13). Probes only the print's footprint, so a small
+      centred part costs seconds instead of a full 11×11 sweep — while large prints,
+      which is where the outside-centre adhesion actually bites, still get correct
+      data. This removes the "fresh mesh vs. fast start" trade-off entirely.
+- [ ] **Replace the fixed soak timer with a temperature gate.** Today: 15/10/5 min
+      flat. Instead `TEMPERATURE_WAIT SENSOR='temperature_fan chamber' MINIMUM=<target>`
+      plus a sanity cap. Warm machine → instant. Cold machine → waits properly.
+- [ ] **Keep-warm between sessions.** Hold the bed at a standby temp after
+      `PRINT_END` so the frame doesn't cool during the part swap; auto-off after N
+      minutes. Next session then passes the temperature gate immediately.
+      ⚠️ `[idle_timeout] timeout: 1800` runs `TURN_OFF_HEATERS` after 30 min idle —
+      keep-warm must account for that or it will be silently killed.
+- [ ] **Wash the plate** with dish soap and water, air dry. Ellis: **IPA alone is
+      insufficient** for maintenance cleaning.
 - [ ] **[verify] `PROBE_ACCURACY`** — Ellis' bar: **std dev ≤ 0.004, range ≤ 0.0125**.
-      If it fails, stop and fix probing before tuning anything else.
+      If this fails, stop — fix probing before tuning anything else.
 - [ ] Disable **z-hop on the first layer** in the slicer.
-- [ ] Consider first-layer line width **120 %** for more surface pressure.
+- [ ] Consider first-layer line width **120 %**.
 - [ ] Purge line runs at `Y4`, outside `mesh_min: 30,30` → extrapolated mesh.
-      Move the purge inside the meshed area.
+      Move it inside the meshed area.
+
+### Tier B — one cheap thermistor (recommended, unlocks the real fix)
+
+- [ ] **Add an NTC 100k to MP8 `TH1` (PC5)** — 4 thermistor ports are free (TH0/1/2/3;
+      only THB is used) and `printer/aux_temperature_sensors.cfg` is an empty
+      placeholder waiting for exactly this. Clamp it to the **gantry X extrusion**
+      (or a Z frame extrusion) — it must read *metal*, not air. Your existing
+      chamber sensor is a BME280, which measures air and is the wrong signal here.
+- [ ] Gate the soak on **frame temp** instead of chamber air.
+- [ ] **Add `[z_thermal_adjust]`** (`temp_coeff`, `max_z_adjustment`, `smooth_time`
+      — confirmed present in your Klipper). It continuously corrects Z as the frame
+      expands, so you can start printing *before* thermal equilibrium instead of
+      waiting for it. Ellis lists this as a legitimate thermal-drift mitigation.
+      `temp_coeff` **must be calibrated empirically** (~0.02 mm/°C is only a
+      starting ballpark for aluminium).
+
+### Mesh strategy — keeps your prebuilt mesh idea
+
+1. Take **one** high-quality full 11×11 mesh at true equilibrium (the 45–60 min soak,
+   **once**). Save as `default`. Record the frame temp at that moment via
+   `[save_variables]`.
+2. Normal sessions: load `default` and let `z_thermal_adjust` cancel the global Z shift.
+3. Large parts, or when frame temp deviates beyond a threshold from the mesh's
+   reference: `BED_MESH_CALIBRATE ADAPTIVE=1` instead.
+
+**Why this works:** frame expansion mostly produces a *uniform* Z offset, which
+`z_thermal_adjust` cancels directly; mesh *shape* changes far more slowly. So a good
+prebuilt mesh plus live Z compensation approximates a fresh mesh at a fraction of the
+time cost.
+
+**Honest caveat:** this is well-supported but not free — `temp_coeff` has to be
+calibrated, and if the bed/gantry *shape* (not just height) shifts materially with
+temperature, the prebuilt mesh will drift and adaptive re-meshing is the fallback for
+critical prints.
 
 **Recheck the symptom here before spending money or effort on Phase 2.**
 
