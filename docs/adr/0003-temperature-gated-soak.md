@@ -57,3 +57,40 @@ when a print is active, which does not compose with a blocking `PRINT_START`.
   eliminate thermal drift. It buys speed; [0004](0004-frame-temperature-sensing.md)
   buys accuracy. Both are needed.
 - Gate values are `PRINT_START` variables, tunable without touching logic.
+
+---
+
+## Revisions
+
+### 2026-07-24 — gate relocated, exhaust conflict fixed, wait bounded
+
+Three defects surfaced the first time this ran on the machine. The decision (gate on
+measured temperature, not a timer) stands; the implementation was wrong three ways.
+
+1. **The chamber exhaust fan was fighting the gate.** `PRINT_START` runs
+   `M141 S{CHAMBER}` — 36 from the slicer — and a `[temperature_fan]` runs its fan
+   *above* its target. The exhaust (`MP8:FAN3`) therefore sat at speed 1.0 venting the
+   chamber while the gate waited for 40 °C. **Evidence:** chamber pinned at ~38 °C
+   climbing 0.29 °C/min with `fan=1.0`. The exhaust target is now held at
+   `max(slicer target, gate + 10)` from the top of `PRINT_START`.
+
+2. **The gate sat too early**, right after `M190`, where only the bed heats the chamber.
+   **Evidence:** 0.29 °C/min there, versus the chamber reaching 44.9 °C within a minute
+   of the hotend hitting temperature. Moved after `CLEAN_NOZZLE` + the 150 °C nozzle
+   preheat + QGL, so that time counts and the hotend contributes.
+
+3. **`TEMPERATURE_WAIT` could not be interrupted.** `CANCEL_PRINT` **queues behind it**,
+   so a cancel did nothing for ~15 minutes. This ADR had listed the missing timeout as an
+   accepted risk; it bit. Replaced with a bounded series of `_SOAK_STEP` calls — each a
+   separate macro invocation, so it re-reads the temperature and no-ops once the gate is
+   met. A Jinja loop cannot do this (`printer.*` evaluates once at expansion) and a
+   self-recursive macro is rejected by Klipper's recursion guard.
+
+**Result:** the gate cost **0 s** on the next warm start (chamber already 44 °C).
+
+### 2026-07-24 — hotend preheat moved to the top of PRINT_START
+
+Once [ADR-0005](0005-between-session-keep-warm.md) made `M190` return in ~2 s, the
+preheat placed just before it had no runway. **Evidence:** hotend still at 52 °C when
+`CLEAN_NOZZLE` ran, whose `M109` then blocked ~46 s. `M104 S150` now issues at the very
+top so it heats during homing (~41 s) and the pre-QGL (~94 s), which are dead time.

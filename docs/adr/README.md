@@ -1,11 +1,27 @@
 # Architecture Decision Records
 
 Decisions taken while cleaning up and tuning this printer, with the reasoning and
-the trade-offs that were accepted. Each record is immutable once **Accepted** — if a
-decision changes later, add a new ADR that supersedes it rather than editing history.
+the trade-offs that were accepted.
 
 Format: Context → Decision → Consequences, after
 [Michael Nygard's template](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions).
+
+## Process (see [`CLAUDE.md`](../../CLAUDE.md) Rule 1)
+
+**Every decision gets a record, and every drift updates it.**
+
+| Situation | What to do |
+|---|---|
+| New decision with a trade-off or a rejected alternative | New ADR, written **in the same change** as the code |
+| Decision **refined or retuned**, same intent | Add a dated entry to that ADR's **Revisions** section |
+| Decision **reversed** | New ADR that supersedes it; mark the old one `Superseded by NNNN` and **leave its body intact** |
+
+A Revisions entry must say *what changed* **and** *what evidence forced the change* —
+a measurement, a log line, a failure. "Tuned the value" is not a revision entry;
+"the exhaust fan held the chamber at 38 °C and the gate never cleared" is.
+
+Never delete the reasoning that turned out to be wrong. It is the most useful part of
+the record, and this repo has already re-learned the same lesson twice without it.
 
 | # | Title | Status |
 |---|---|---|
@@ -17,6 +33,8 @@ Format: Context → Decision → Consequences, after
 | [0006](0006-adaptive-bed-mesh.md) | Adaptive mesh per print instead of a stale saved mesh | Accepted |
 | [0007](0007-joystick-jog-via-moonraker.md) | Joystick jog drives the toolhead through Moonraker, not Klipper | Accepted |
 | [0008](0008-mcu-firmware-update-flow.md) | MCU firmware updates run outside Moonraker | Accepted |
+| [0009](0009-nozzle-clean-pressure-relief.md) | Relieve nozzle pressure before wiping | Accepted |
+| [0010](0010-belt-tension-method.md) | BTT Belter is the belt-tension method of record | Accepted |
 
 ## Why these exist
 

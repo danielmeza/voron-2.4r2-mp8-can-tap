@@ -41,3 +41,34 @@ does not leave the bed holding heat.
   the bed is never released. This was caught by smoke-testing the macro and finding the
   bed still targeting 95 °C after `STOP_STANDBY_WARM` returned `OK`.
 - Energy cost is real but small compared with re-soaking a 350 mm chamber.
+
+---
+
+## Revisions
+
+### 2026-07-24 — it never actually fired
+
+`PRINT_END` decided "was this an ABS print?" by reading `heater_bed.target`. Slicers emit
+`M140 S0` immediately **before** `PRINT_END` — verified in the gcode: `M140 S0` on line
+7383, `PRINT_END` on 7384 — so it always read 0 and standby never engaged.
+`PRINT_START` now records the target into a `PRINT_END` variable.
+
+**Result once fixed:** bed held at 100 °C between prints, and the next `M190` returned in
+**~2 s instead of 355 s**.
+
+### 2026-07-24 — standby now holds the motors too, and engages earlier
+
+Two refinements, both from measured behaviour:
+
+- **Motors are no longer released while standby holds.** `quad_gantry_level.applied` is
+  reset by exactly one event — `stepper_enable:motor_off` (`klippy/extras/z_tilt.py`) —
+  so the `M84` in `PRINT_END` was forcing the *next* print to run two full QGL passes.
+  **Evidence:** first QGL of a print after `M84` started at a 0.626 mm range (the gantry
+  sags unpowered) and took 94 s, then the real QGL ran again for 59 s.
+  `PRINT_END` now skips `M84` while standby engages, so
+  `_QUAD_GANTRY_LEVEL_IF_NEEDED` skips itself. Motors are released when standby expires
+  or by `[idle_timeout]` at 30 min — so a genuinely cold start still gets both passes,
+  which is the correct behaviour.
+- **Standby engages immediately after `TURN_OFF_HEATERS`**, not at the end of
+  `PRINT_END`. The macro takes ~2 min to finish (there is a `G4 P120000` party dwell),
+  and the bed was cooling for all of it — defeating most of the point.

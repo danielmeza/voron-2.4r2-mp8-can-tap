@@ -46,3 +46,28 @@ default is 0).
 - A prebuilt full mesh remains useful as a reference and for
   [0004](0004-frame-temperature-sensing.md)'s calibration; adaptive meshing does not
   replace having one good equilibrium mesh on file.
+
+---
+
+## Revisions
+
+### 2026-07-24 — Moonraker's preprocessor makes this work with Cura
+
+This ADR noted the fallback to a full mesh was "safe but slow" and that object
+definitions were slicer-dependent. On this machine they were **never** present: Cura
+does not emit `EXCLUDE_OBJECT_DEFINE`, so every print silently paid the 121-point path —
+measured at **~12 minutes**, because `[probe] samples: 3` makes that 363 probe cycles.
+
+Moonraker **bundles** `preprocess_cancellation` and can inject the definitions on upload.
+It was simply off: `moonraker.conf` had no `[file_manager]` section at all.
+
+```ini
+[file_manager]
+enable_object_processing: True
+```
+
+**Verified:** the same Cura file went from **0 → 36** `EXCLUDE_OBJECT_DEFINE` entries with
+correct polygon bounds. On the next print Klipper reported *"Found 1 objects"*,
+*"Adapted probe count: (3,3)"* — **9 points, 44 s** instead of 121 points and ~12 min.
+
+No slicer change was needed. This also enables per-object cancellation in Mainsail.
