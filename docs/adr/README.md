@@ -35,6 +35,7 @@ the record, and this repo has already re-learned the same lesson twice without i
 | [0008](0008-mcu-firmware-update-flow.md) | MCU firmware updates run outside Moonraker | Accepted |
 | [0009](0009-nozzle-clean-pressure-relief.md) | Relieve nozzle pressure before wiping | Accepted |
 | [0010](0010-belt-tension-method.md) | BTT Belter is the belt-tension method of record | Accepted |
+| [0011](0011-standby-signalling-and-chamber-on-screen.md) | Signal standby on the LEDs; chamber temp on the print screen | Accepted |
 
 ## Why these exist
 
