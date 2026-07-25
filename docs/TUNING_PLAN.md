@@ -94,11 +94,51 @@ Real consequences today:
 Also `[virtual_sdcard] path`: `printer.cfg` says `/home/biqu/printer_data/gcodes`,
 mainsail says `~/printer_data/gcodes` — same place, harmless.
 
-- [ ] **Decide:** keep mainsail's macros (delete yours) **or** keep yours
-      (move `[include mainsail.cfg]` above `[include printer/...]`, or use
-      `_CLIENT_VARIABLE` + `user_pause_macro`/`user_resume_macro`/`user_cancel_macro`,
-      which is the intended extension point)
+### Recommendation: keep mainsail's macros, delete yours, hook via `_CLIENT_VARIABLE`
+
+`mainsail.cfg` states in its own header: *"**This file is read-only**"*, and it is
+managed by Moonraker's update manager (`mainsail-config v1.2.1-1`). Reordering the
+include to make your copies win would re-break on every update, and mainsail's
+versions are genuinely more robust — they handle runout-sensor state, `can_extrude`
+checks, idle-timeout save/restore, and UI prompts that yours do not. Your copies are
+already dead, so keeping mainsail's is the *status quo*, not a change.
+
+- [ ] Delete `[gcode_macro PAUSE]`, `[gcode_macro RESUME]`, `[gcode_macro CANCEL_PRINT]`
+      from `macros/printing.cfg`
+- [ ] Add `[gcode_macro _CLIENT_VARIABLE]` (template is at the top of `mainsail.cfg`)
+      with the hooks below. **Note:** the `user_*` variables accept a *single line
+      only* — point them at a macro.
+
+```ini
+[gcode_macro _CLIENT_VARIABLE]
+variable_park_at_cancel   : True
+variable_park_at_cancel_x : 175
+variable_park_at_cancel_y : 340
+variable_idle_timeout     : 43200                                     # matches your old PAUSE
+variable_runout_sensor    : "filament_motion_sensor filament_sensor"  # exact object name
+variable_user_pause_macro : "_USER_PAUSE"
+variable_user_resume_macro: "_USER_RESUME"
+variable_user_cancel_macro: "_USER_CANCEL"
+gcode:
+```
+
+Then recover only the behaviour that is actually missing today — do **not** call
+`PRINT_END` wholesale from `_USER_CANCEL`, because mainsail's `CANCEL_PRINT` already
+does `TURN_OFF_HEATERS`, `M106 S0`, retract and park; duplicating the moves will fight
+it. Cherry-pick instead:
+
+| Macro | Should do | Why |
+|---|---|---|
+| `_USER_PAUSE` | `SET_FILAMENT_SENSOR SENSOR=filament_sensor ENABLE=0` | your old PAUSE did this; mainsail does not |
+| `_USER_RESUME` | `SET_FILAMENT_SENSOR SENSOR=filament_sensor ENABLE=1` | restore it |
+| `_USER_CANCEL` | `CANCEL_HEAT_SOAK` (or `STOP_HEAT_SOAK`), `M141 S40`, `PARTS_FAN_OFF`, LED status | a soak currently survives a cancel |
+
+All four referenced macros exist: `STOP_HEAT_SOAK`/`CANCEL_HEAT_SOAK` (`heatsoak.cfg`),
+`PARTS_FAN_OFF` (`macros/parts_fan.cfg`), `_CASELIGHT_ON/OFF` (`chamber/leds.cfg`).
+
 - [ ] Re-run linter until clean
+- [ ] **[verify]** after sync: `rename_existing` is `PAUSE_BASE`/`RESUME_BASE`/`CANCEL_PRINT_BASE`
+      and a test cancel actually stops a running heat soak
 
 ---
 
@@ -143,13 +183,62 @@ not the clock.
 - [ ] Purge line runs at `Y4`, outside `mesh_min: 30,30` → extrapolated mesh.
       Move it inside the meshed area.
 
-### Tier B — one cheap thermistor (recommended, unlocks the real fix)
+### Tier A — chosen values (derived from measured machine data)
 
-- [ ] **Add an NTC 100k to MP8 `TH1` (PC5)** — 4 thermistor ports are free (TH0/1/2/3;
-      only THB is used) and `printer/aux_temperature_sensors.cfg` is an empty
-      placeholder waiting for exactly this. Clamp it to the **gantry X extrusion**
-      (or a Z frame extrusion) — it must read *metal*, not air. Your existing
-      chamber sensor is a BME280, which measures air and is the wrong signal here.
+Measured from Moonraker's temperature store during a real print (bed 100 °C):
+chamber (BME280) plateaus at **44–47 °C** (observed max 46.8); post-print with bed
+at 90 °C it read 46.7 °C.
+
+| Setting | Value | Why this value |
+|---|---|---|
+| Soak gate (chamber) | **40 °C** | Plateau is 44–47 °C, so 40 °C is reliably reachable with margin even on a cool day. It also already matches your `target_chamber` default. A 45 °C gate would sit within noise of the ceiling and the cap would fire constantly. |
+| Gate cap (max wait) | **20 min** | Pure safety valve so a failed heater or open door can't hang the queue. Warm start costs 0 s. Should `RESPOND` a warning when it fires. |
+| Cold-start floor | **20 min**, only if chamber < 30 °C at `PRINT_START` | Keeps part of Ellis' soak benefit for the first print of the day without taxing every later session. Paid once per power-on. |
+| Standby bed temp | **same as the last print's bed target** (e.g. 100 °C) | The goal is holding the *frame* at equilibrium. Dropping to 60–70 °C lets it drift down and reintroduces exactly the drift being engineered away. |
+| Standby auto-off | **25 min** | Covers a 10–15 min part swap with margin, and expires *before* `[idle_timeout] 1800` (30 min) — otherwise `TURN_OFF_HEATERS` fires first and silently kills standby. |
+| `ADAPTIVE_MARGIN` | **5 mm** | Extends the mesh past the part bounds to cover brim/skirt. Klipper's default is 0. |
+
+> **Honest limitation:** chamber *air* reaches 40 °C long before the *frame* stabilises.
+> This gate stops you printing stone-cold and makes warm restarts instant, but it does
+> **not** fully solve thermal drift. That is what Tier B is for. Tier A buys speed;
+> Tier B buys accuracy.
+
+- [ ] **[measure]** On the next true cold start, log chamber + MP8 + CB1 for 60 min to
+      find the real plateau and time constant, then refine the numbers above.
+
+### Tier B — one cheap sensor (recommended, unlocks the real fix)
+
+**Mount on a *static vertical Z frame extrusion*, not the moving gantry.** On a 2.4 the
+Z datum is set by the vertical extrusions and belts, so that is the metal that matters —
+and it means a short fixed cable run with no drag chain, which removes most of the
+"extra wiring" concern.
+
+**Recommended — bolted NTC (best thermal coupling, ~$5):**
+
+- **M3 screw / ring-lug NTC 100K 3950** (sold as "M3 screw-in thermistor 100K NTC 3950").
+  Bolts straight into a T-nut for metal-to-metal contact.
+- Wire to **MP8 `TH1` (PC5)** — TH0/TH1/TH2/TH3 are all free (only `THB` is used).
+- Config: `sensor_type: Generic 3950`, `sensor_pin: MP8:TH1`, in the empty
+  `printer/aux_temperature_sensors.cfg`.
+- Higher-accuracy alternatives: `EPCOS 100K B57560G104F` (cartridge, needs a 3 mm hole)
+  or `ATC Semitec 104NT-4-R025H42G` (glass bead — awkward to bolt).
+- For `z_thermal_adjust`, **stability matters more than absolute accuracy** — `temp_coeff`
+  is calibrated against whatever this sensor reads, so a cheap 3950 is genuinely fine.
+
+**If you'd rather run no new wire — chain an LM75 onto the existing I2C:**
+
+- Your BME280 sits on *software* I2C on the MP8 (`MP8:I2C_SCL` / `MP8:I2C_SDA`) at
+  address **0x76**. **LM75 defaults to 0x48 — no conflict**, so it T's onto the same two
+  wires. Address pins A0–A2 allow up to 8 devices if you add more later.
+- Config: `sensor_type: LM75`, `i2c_mcu: MP8`, the same `i2c_software_*` pins,
+  `i2c_address: 0x48`.
+- **Caveat:** an LM75 breakout reads its own *die* temperature on a PCB. Reading frame
+  metal needs a thermal pad plus a firm clamp, and it responds more slowly and is more
+  air-influenced than a bolted NTC. Workable, but strictly a worse metal proxy.
+
+**Do not buy an MCP9808** — Klipper has no driver for it. The supported I2C options are
+`LM75`, `BME280`, `AHT10`, `HTU21D`, `SHT3X`. `DS18B20` also exists (1-Wire, chainable)
+but needs a `serial_no` plus firmware support — more setup than LM75 for no real gain here.
 - [ ] Gate the soak on **frame temp** instead of chamber air.
 - [ ] **Add `[z_thermal_adjust]`** (`temp_coeff`, `max_z_adjustment`, `smooth_time`
       — confirmed present in your Klipper). It continuously corrects Z as the frame
