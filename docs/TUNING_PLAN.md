@@ -355,11 +355,76 @@ warnings. Self-healed after the update, but should be closed out.
    (`[probe] pin: !EBB:TAP_PROBE` + `endstop_pin: probe:z_virtual_endstop`).
    **[verify] the probe triggers before any `G28 Z`** or the toolhead drives into the bed.
 
-- [ ] `~/klippy-env/bin/python ~/klipper/scripts/canbus_query.py can0` — confirm both
-      UUIDs and whether Katapult is installed
-- [ ] Confirm CAN bitrate matches `/etc/network/interfaces.d/can0` (docs default `1000000`)
-- [ ] Capture each board's existing `~/klipper/.config` before rebuilding
-- [ ] Flash in the order above, verifying after each
+### Blocked on SSH
+
+There is **no remote path to flash MCUs**. Moonraker's update manager covers host
+software only (`klipper`, `moonraker`, `mainsail`, `KlipperScreen`, `crowsnest`,
+`sonar`, `timelapse`); flashing needs `make` and a shell. Authorize the key first:
+
+```bash
+ssh-copy-id -i ~/.ssh/id_ed25519_voron.pub biqu@192.168.68.69
+```
+
+### Runbook (run each step, check the output before continuing)
+
+**0 — Survey. Do not skip; the rest depends on what this reports.**
+
+```bash
+ssh voron
+~/klippy-env/bin/python ~/klipper/scripts/canbus_query.py can0   # UUIDs + Katapult present?
+cat /etc/network/interfaces.d/can0                               # bitrate must match firmware
+ls -d ~/katapult ~/CanBoot 2>/dev/null                           # bootloader installed?
+cp ~/klipper/.config ~/klipper.config.backup                     # whatever target was built last
+```
+
+`canbus_query.py` only lists **uninitialised** nodes, so run it with Klipper stopped
+(`sudo systemctl stop klipper`) or it will show nothing.
+
+**1 — Linux MCU on the CB1** (safest; no CAN involved, so do it first)
+
+```bash
+cd ~/klipper && make menuconfig      # Microcontroller Architecture -> Linux process
+sudo systemctl stop klipper
+make clean && make
+sudo make flash                      # installs klipper_mcu
+sudo systemctl start klipper
+```
+Verify `mcu` reports v0.13 before continuing.
+
+**2 — EBB SB2209 (RP2040), uuid `19de38651b72`** — while the Manta bridge still works
+
+```bash
+cd ~/klipper && make menuconfig      # RP2040, USB-CAN? no -> CAN bus, matching bitrate
+make clean && make
+sudo systemctl stop klipper
+python3 ~/katapult/scripts/flashtool.py -i can0 -u 19de38651b72 -f ~/klipper/out/klipper.bin
+sudo systemctl start klipper
+```
+
+⚠️ **TAP:** the probe is on the EBB and is the only Z endstop
+(`[probe] pin: !EBB:TAP_PROBE`, `endstop_pin: probe:z_virtual_endstop`).
+**Before any `G28 Z`**, confirm the probe still triggers — `QUERY_PROBE`, push the
+nozzle up by hand, `QUERY_PROBE` again and check the value changes. If it does not,
+STOP: homing Z would drive the toolhead into the bed.
+
+**3 — Manta M8P v2.0 (H723), uuid `f24b112c272e`** — LAST, because it is the bridge
+
+Reflashing this drops the whole CAN bus, EBB included. If it fails you lose the bridge.
+
+```bash
+cd ~/klipper && make menuconfig      # STM32H723, 128KiB bootloader, 25MHz crystal,
+                                     # USB to CAN bus bridge, matching bitrate
+make clean && make
+```
+Recovery path is SD card: copy `out/klipper.bin` to a FAT32 SD as `firmware.bin`,
+power-cycle the board. Keep that SD handy **before** starting.
+
+- [ ] Step 0 survey done, output reviewed
+- [ ] Linux MCU flashed, `mcu` reports v0.13
+- [ ] EBB flashed, **probe verified with `QUERY_PROBE` before homing Z**
+- [ ] Manta flashed (SD recovery ready)
+- [ ] **[verify]** all three MCUs on v0.13 and the 6 `deprecated_mcu_code` warnings gone
+- [ ] **[verify]** `QUAD_GANTRY_LEVEL` completes and first layer unchanged
 
 ---
 
