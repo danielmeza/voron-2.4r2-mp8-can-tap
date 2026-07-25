@@ -39,23 +39,16 @@ treated identically to `9.5`.
 
 | Belt | Display | Tension | Spec | Verdict |
 |---|---|---|---|---|
-| A/B (both) | −6.0 mm | **12.33 N** | 7.8 – 15.0 N | ✅ in range, comfortably mid-window |
-| Z | −9.5 mm | **39.18 N** | 20.4 – 25.8 N | ❌ **+52 % over max** |
-| Z | −9.8 mm | **41.48 N** | 20.4 – 25.8 N | ❌ **+61 % over max** |
+| A/B (both) | −6.0 mm | **12.33 N** | 7.8 – 15.0 N | ✅ in range (63 % through the window) |
+| Z (all four) | −7.2 mm | **21.53 N** | 20.4 – 25.8 N | ✅ in range (21 % through the window) |
 
-**The Z belts are substantially over-tensioned by BTT's own table.** To land in
-spec the display should read **7.05 – 7.76 mm**, not 9.5 – 9.8.
+**Both belt sets are in spec.** The spreadsheet was right.
 
-Over-tensioned Z belts load the motors and bearings, and can bow the gantry — which
-matters here, because the measured bed mesh is a **Y-dominated saddle with a 0.1487 mm
-range** and Ellis notes that *"most bed mesh issues are caused by the gantry rather
-than the bed itself."* This is a plausible contributor to the original
-adhesion-away-from-centre complaint and is worth correcting before Phase 2 mechanical
-work.
+Z sits in the lower fifth of its window, which is a fine place to be — Ellis'
+guidance is that equal tension across all four Z belts matters more than the exact
+figure, and slightly-loose beats over-tight for motor and bearing load.
 
-> If the spreadsheet reported "YES" for these Z values, check that the dropdown was set
-> to **Voron 2.4 Z belts** and not *All Voron A/B Belts* (7.8–15 N) or *Custom Printer*.
-> 39 N does not fall inside any of the built-in windows.
+Target display readings for reference: **A/B 5.41 – 6.35 mm**, **Z 7.05 – 7.76 mm**.
 
 ---
 
@@ -92,6 +85,8 @@ Converting between the two therefore needs μ, and that is where it falls apart:
 | 140 Hz over 150 mm, μ = 5.6 g/m (typical GT2-6 mm) | **≈ 9.9 N** |
 | BTT's Voron 2.4 Z window | **20.4 – 25.8 N** |
 | BTT's Z window expressed as frequency (μ = 5.6 g/m) | **≈ 201 – 226 Hz** |
+| This printer's actual Z (21.53 N) as frequency | **≈ 207 Hz** |
+| This printer's actual A/B (12.33 N) as frequency | **≈ 156 Hz** |
 
 So BTT's Z target is roughly **2–2.6× the tension** implied by the 140 Hz rule. For the
 two to agree, μ would have to be **11.6 – 14.6 g/m**, about double a typical GT2 6 mm
@@ -129,13 +124,14 @@ frequency error and a **21 %** tension error. Measure the plucked span, don't ey
 
 ## Practical recommendation
 
-1. **A/B belts: leave them.** 12.33 N sits mid-window on the Belter, and both belts read
-   the same, which is the property that actually matters for CoreXY.
-2. **Z belts: back them off.** They read 9.5 – 9.8 mm where BTT wants 7.05 – 7.76 mm.
-   Equal tension across all four is more important than the absolute value.
-3. Re-run `QUAD_GANTRY_LEVEL` and re-mesh afterwards, and compare the mesh range against
-   the current **0.1487 mm**. If the saddle flattens, the Z belts were part of the
-   adhesion problem.
-4. Then cross-calibrate μ so future checks can use whichever tool is to hand.
+1. **Leave both belt sets alone.** A/B at 12.33 N and Z at 21.53 N are both inside BTT's
+   windows, and equality across belts — the property that actually matters — holds.
+2. **Belt tension is therefore ruled out** as a cause of the 0.1487 mm mesh saddle. If
+   Phase 2 mechanical work is needed, the remaining suspects are gantry squaring /
+   de-racking, debris under the spring steel, and bed mounting — not tension.
+3. If you ever want to cross-check with the frequency app, expect roughly **207 Hz** on Z
+   and **156 Hz** on A/B over a 150 mm span — *not* 140 Hz. That is the method
+   disagreement above, not a fault.
+4. Cross-calibrate μ if you want the two tools to agree.
 
 Tracked in [`TUNING_PLAN.md`](TUNING_PLAN.md) Phase 2.

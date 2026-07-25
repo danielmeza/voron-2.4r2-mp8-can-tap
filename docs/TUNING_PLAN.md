@@ -325,12 +325,11 @@ front `+0.014`, middle `−0.055`, back `+0.033` (0.068 mm dip); X nearly flat
 
 Ellis: *"Most bed mesh issues are caused by the gantry rather than the bed itself."*
 
-- [ ] **Z belt tension — measured OVER-TENSIONED.** Belter reads 9.5-9.8 mm =
-      **39-41 N** against BTT's Voron 2.4 Z window of 20.4-25.8 N (+52 to +61 %).
-      Target display is **7.05-7.76 mm**. Equal across all four matters more than
-      the absolute figure. See [BELT_TENSION.md](BELT_TENSION.md).
+- [x] **Z belt tension — IN SPEC.** Belter reads 7.2 mm = **21.53 N** against BTT's
+      Voron 2.4 Z window of 20.4-25.8 N. No action. See [BELT_TENSION.md](BELT_TENSION.md).
 - [x] A/B belt tension — Belter reads 6.0 mm = **12.33 N**, mid-window (7.8-15 N),
       and equal on both. No action.
+- Belt tension is **ruled out** as a cause of the 0.1487 mm mesh saddle.
 - [ ] **[measure]** Cross-calibrate belt linear density: the Belter and the 140 Hz
       frequency rule disagree by 2-2.6x. Measure mu with both tools and settle it.
 - [ ] [Voron V2 gantry squaring](https://ellis3dp.com/Print-Tuning-Guide/articles/voron_v2_gantry_squaring.html)
