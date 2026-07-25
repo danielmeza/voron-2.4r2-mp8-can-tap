@@ -32,6 +32,12 @@ does not leave the bed holding heat.
   matters much less and the energy is not worth it.
 - The bed sits at ~100 °C unattended for up to 25 min. Bounded and auto-expiring, but
   it *is* an unattended heater — accepted deliberately.
-- `_STANDBY_WARM_OFF` and `STOP_STANDBY_WARM` both check `idle_timeout.state` so they
-  cannot turn off the bed mid-print if a new job started during the window.
+- `_STANDBY_WARM_OFF` and `STOP_STANDBY_WARM` both guard on
+  **`print_stats.state != "printing"`** so they cannot turn the bed off mid-print if a
+  new job started during the window.
+- **Do not use `idle_timeout.state` for that guard.** It is a *busy* flag, not a job
+  flag: Klipper sets it to `Printing` while executing **any** command — including the
+  guarding macro itself — so the condition is always false at the moment it matters and
+  the bed is never released. This was caught by smoke-testing the macro and finding the
+  bed still targeting 95 °C after `STOP_STANDBY_WARM` returned `OK`.
 - Energy cost is real but small compared with re-soaking a 350 mm chamber.
