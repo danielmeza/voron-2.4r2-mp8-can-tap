@@ -225,20 +225,47 @@ and it means a short fixed cable run with no drag chain, which removes most of t
 - For `z_thermal_adjust`, **stability matters more than absolute accuracy** — `temp_coeff`
   is calibrated against whatever this sensor reads, so a cheap 3950 is genuinely fine.
 
-**If you'd rather run no new wire — chain an LM75 onto the existing I2C:**
+**I2C was considered and rejected** — see [ADR-0004](adr/0004-frame-temperature-sensing.md).
+An LM75 needs **4 conductors** (VCC/GND/SDA/SCL), and because the sensors sit on **four
+separate Z corner pillars** they cannot be usefully chained — each pillar needs its own
+run regardless. So I2C costs 4 wires per pillar to the NTC's 2, and adds address
+management, for a sensor that reads its own PCB die temperature rather than frame metal.
+The "chain it and save wiring" argument does not survive the physical layout.
 
-- Your BME280 sits on *software* I2C on the MP8 (`MP8:I2C_SCL` / `MP8:I2C_SDA`) at
-  address **0x76**. **LM75 defaults to 0x48 — no conflict**, so it T's onto the same two
-  wires. Address pins A0–A2 allow up to 8 devices if you add more later.
-- Config: `sensor_type: LM75`, `i2c_mcu: MP8`, the same `i2c_software_*` pins,
-  `i2c_address: 0x48`.
-- **Caveat:** an LM75 breakout reads its own *die* temperature on a PCB. Reading frame
-  metal needs a thermal pad plus a firm clamp, and it responds more slowly and is more
-  air-influenced than a bolted NTC. Workable, but strictly a worse metal proxy.
+`MCP9808` has **no Klipper driver** — don't buy one. Supported I2C types are `LM75`,
+`BME280`, `AHT10`, `HTU21D`, `SHT3X`; `DS18B20` exists (1-Wire) but needs `serial_no`
+plus firmware support.
 
-**Do not buy an MCP9808** — Klipper has no driver for it. The supported I2C options are
-`LM75`, `BME280`, `AHT10`, `HTU21D`, `SHT3X`. `DS18B20` also exists (1-Wire, chainable)
-but needs a `serial_no` plus firmware support — more setup than LM75 for no real gain here.
+### What to buy
+
+| Item | Qty | Notes |
+|---|---|---|
+| **NTC 100K 3950 thermistor, M3 ring lug / screw type** | 1–4 | The whole part. Search *"M3 screw in thermistor 100K NTC 3950 ring"*. Sold for bed sensing; ~$2–8 each, often in 2–5 packs. |
+| M3 × 8–10 mm screw + **M3 T-nut** (2020 extrusion) | 1 per sensor | Standard Voron hardware, you already have these |
+| 2-pin JST-XH 2.54 mm pigtails | 1 per sensor | MP8 thermistor ports are JST-XH; many thermistors ship with them fitted |
+| PTFE-sleeved extension wire | as needed | Only if the supplied lead is too short |
+
+Vendor-neutral references (verify current stock/specs yourself):
+
+- Klipper's supported sensor names —
+  [Config Reference › Temperature sensors](https://www.klipper3d.org/Config_Reference.html#temperature-sensors)
+  (use `Generic 3950`; `EPCOS 100K B57560G104F` and `ATC Semitec 104NT-4-R025H42G` are
+  the named alternatives)
+- [`z_thermal_adjust` reference](https://www.klipper3d.org/Config_Reference.html#z_thermal_adjust)
+- [`temperature_combined` reference](https://www.klipper3d.org/Config_Reference.html#temperature_combined)
+- [Manta M8P v2.0 pinout](https://github.com/bigtreetech/Manta-M8P) — confirm TH0–TH3
+  before wiring
+- Voron sourcing lists for equivalents:
+  [LDO](https://github.com/LDOMotors) · [Fysetc](https://www.fysetc.com) ·
+  [BIQU/BTT](https://biqu.equipment)
+
+**Start with one sensor on TH1.** That is enough to configure `z_thermal_adjust`.
+Add the other three only once the first proves out — the four-sensor build is what
+detects *uneven* pillar heating (via `maximum_deviation`), which is a separate and more
+advanced diagnostic.
+
+Config template is ready and commented out in
+[`config/printer/aux_temperature_sensors.cfg`](../config/printer/aux_temperature_sensors.cfg).
 - [ ] Gate the soak on **frame temp** instead of chamber air.
 - [ ] **Add `[z_thermal_adjust]`** (`temp_coeff`, `max_z_adjustment`, `smooth_time`
       — confirmed present in your Klipper). It continuously corrects Z as the frame
