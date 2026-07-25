@@ -50,9 +50,21 @@ function Assert-Tool {
 }
 
 function Invoke-Remote {
-    param([string] $Command)
+    param(
+        [string] $Command,
 
-    & ssh $Target $Command
+        # sudo cannot prompt without a terminal, and most printer images ask for a password.
+        # Commands that need it get a pseudo-tty so the prompt reaches you.
+        [switch] $Interactive
+    )
+
+    if ($Interactive) {
+        & ssh -t $Target $Command
+    }
+    else {
+        & ssh $Target $Command
+    }
+
     if ($LASTEXITCODE -ne 0) {
         throw "Remote command failed (exit $LASTEXITCODE): $Command"
     }
@@ -137,12 +149,9 @@ mv '$remoteStage' '$Destination'
         Pop-Location
     }
 
-    Invoke-Remote @"
-sudo install -m 644 '/tmp/$unitName' '/etc/systemd/system/$unitName'
-rm -f '/tmp/$unitName'
-sudo systemctl daemon-reload
-sudo systemctl enable $unitName
-sudo systemctl restart $unitName
+    Write-Host '    (sudo on the printer may ask for your password)' -ForegroundColor Yellow
+    Invoke-Remote -Interactive @"
+sudo install -m 644 '/tmp/$unitName' '/etc/systemd/system/$unitName' && rm -f '/tmp/$unitName' && sudo systemctl daemon-reload && sudo systemctl enable $unitName && sudo systemctl restart $unitName
 "@
 
     Write-Host ''
