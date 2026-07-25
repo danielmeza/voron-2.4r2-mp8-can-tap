@@ -419,12 +419,26 @@ make clean && make
 Recovery path is SD card: copy `out/klipper.bin` to a FAT32 SD as `firmware.bin`,
 power-cycle the board. Keep that SD handy **before** starting.
 
-- [ ] Step 0 survey done, output reviewed
-- [ ] Linux MCU flashed, `mcu` reports v0.13
-- [ ] EBB flashed, **probe verified with `QUERY_PROBE` before homing Z**
-- [ ] Manta flashed (SD recovery ready)
-- [ ] **[verify]** all three MCUs on v0.13 and the 6 `deprecated_mcu_code` warnings gone
-- [ ] **[verify]** `QUAD_GANTRY_LEVEL` completes and first layer unchanged
+- [x] Step 0 survey done — CAN bitrate 1000000, Katapult present, klipper checkout
+      already at `7046bd00e` (= host version)
+- [x] **EBB flashed** → `v0.13.0-708-g7046bd00e`, verified (SHA checked), probe and
+      ADXL confirmed working afterwards
+- [x] **Manta flashed** → `v0.13.0-708-g7046bd00e`, verified, USB-CAN bridge returned
+      (`can0 UP`, `1d50:606f` gs_usb)
+- [x] **[verify]** `deprecated_mcu_code` warnings **6 → 0**
+- [ ] **Linux MCU** — built and staged at `~/klipper-fw-backups/klipper_mcu-v0.13.elf`,
+      but installing needs root and `sudo` requires a password. One command:
+      ```bash
+      sudo systemctl stop klipper
+      sudo cp ~/klipper-fw-backups/klipper_mcu-v0.13.elf /usr/local/bin/klipper_mcu
+      sudo systemctl restart klipper-mcu && sudo systemctl start klipper
+      ```
+      Low priority: it currently emits **zero** warnings, so nothing is actually broken.
+- [ ] **[verify]** `QUAD_GANTRY_LEVEL` completes and first layer unchanged (needs a
+      clear build plate — see below)
+
+Build configs for all three boards are preserved in
+[`firmware/`](../firmware/README.md) — the machine only ever kept the last one.
 
 ---
 
