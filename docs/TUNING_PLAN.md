@@ -48,10 +48,35 @@ That last-wins rule is the root cause of most findings here.
 - QGL converges in 1–2 retries (0.026 → 0.005, tolerance 0.01)
 - Adaptive mesh **verified live**: *Found 1 objects*, probe count **(3,3)** — 9 points, **44 s** vs ~12 min for the 121-point fallback
 - Chamber heating: **0.29 °C/min** with the exhaust fighting the soak → **~1.1 °C/min** after holding the exhaust above the gate
-- `PRINT_START` overhead: **~28 min → 15.5 min** measured; bed heat (355 s) is now the largest single cost
+- **`PRINT_START` overhead: 927 s → 219 s measured (−76 %)** across four instrumented prints
 
-**Biggest remaining lever:** `STANDBY_WARM` (now that it actually fires) should remove most
-of the 355 s bed heat for back-to-back sessions.
+### PRINT_START, measured
+
+| Phase | Cold start (2 QGL) | **Warm chain (1 QGL)** |
+|---|---|---|
+| Home `_CG28` | 40.7 s | **skipped** (still homed) |
+| Pre-QGL | 94.3 s | **skipped** (`applied` survived) |
+| `M190` bed | 355 s → 2 s | **0 s** (held at 100 °C) |
+| Soak gate | 15 min → 0 s | **0 s** (chamber 47.5 °C) |
+| `CLEAN_NOZZLE` | 48.7 s | 40.9 s |
+| QGL preheat | 20.9 s | 20.3 s |
+| QGL | 58.9 s | 57.7 s |
+| Adaptive mesh | 12 min → 49.3 s | 47.4 s |
+| Hotend → 230 + purge | 38.7 s | 38.4 s |
+| **Total** | **395–434 s** | **219 s** |
+
+The warm chain requires the previous print to have ended inside the 25 min standby window.
+`quad_gantry_level.applied` is reset only by motor-off, so `PRINT_END` holding the motors
+is what lets the pre-QGL skip itself — a genuinely cold start still gets both passes.
+
+**Remaining levers, in size order**
+
+- [ ] `[probe] samples: 3 → 2` — mesh is 9 points but 27 probe cycles; ~15 s, no
+      meaningful precision loss (std dev 0.0019 mm, see the analysis in Phase 2)
+- [ ] Skip the 40 mm / 120 mm-per-min ooze-pull in `CLEAN_NOZZLE` when no purge ran —
+      ~20 s of nothing ([ADR-0009](adr/0009-nozzle-clean-pressure-relief.md))
+- [ ] `PRINT_END` has a `G4 P120000` party dwell — 2 min of machine time per print
+- [ ] The duplicate `G28 Z` (CLEAN_NOZZLE ends with one, QGL does another) — ~10 s
 
 ---
 
