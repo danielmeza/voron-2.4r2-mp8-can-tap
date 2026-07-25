@@ -28,7 +28,7 @@ pwsh ./scripts/Update-VoronMcuFirmware.ps1 -Boards all
 
 It compares each MCU against the host and flashes **only** what mismatches, so running
 it when everything is current is a no-op. Moonraker has no hook to do this itself —
-see [ADR-0007](../docs/adr/0007-mcu-firmware-update-flow.md). The manual steps below
+see [ADR-0008](../docs/adr/0008-mcu-firmware-update-flow.md). The manual steps below
 are the fallback and the explanation of what the script does.
 
 ## Rebuilding

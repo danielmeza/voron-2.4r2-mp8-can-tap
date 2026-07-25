@@ -1,4 +1,4 @@
-# 0007 — MCU firmware updates run outside Moonraker, via an idempotent script
+# 0008 — MCU firmware updates run outside Moonraker, via an idempotent script
 
 **Status:** Accepted · 2026-07-24
 

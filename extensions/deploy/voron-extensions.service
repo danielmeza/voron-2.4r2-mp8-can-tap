@@ -1,0 +1,23 @@
+[Unit]
+Description=Voron printer extensions (joystick jog)
+Documentation=https://github.com/danielmeza/voron-2.4r2-mp8-can-tap/blob/main/extensions/README.md
+After=network-online.target moonraker.service
+Wants=network-online.target
+
+[Service]
+Type=notify
+# The sunxi GPIO driver maps /dev/mem, which needs root. To run unprivileged instead, set
+# Gpio:Driver=Default in appsettings.json (libgpiod via /dev/gpiochip*), then switch to
+#   User=biqu
+#   SupplementaryGroups=gpio i2c spi
+User=root
+WorkingDirectory=/home/biqu/voron-extensions
+ExecStart=/home/biqu/voron-extensions/Voron.Extensions.Service
+Restart=on-failure
+RestartSec=5
+
+# The jog loop is latency sensitive but must never outrank klipper.
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

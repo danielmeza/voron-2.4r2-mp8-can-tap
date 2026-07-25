@@ -1,10 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- The jog loop is latency sensitive: workstation GC keeps pauses short on the CB1's four cores. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +19,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\extensions\Voron.Joystick\Voron.Joystick.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The console SDK does not pick this up on its own, and the host reads it from the binary's folder. -->
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -15,7 +15,8 @@ Format: Context → Decision → Consequences, after
 | [0004](0004-frame-temperature-sensing.md) | Frame sensing via bolted NTCs, not I2C | Accepted |
 | [0005](0005-between-session-keep-warm.md) | Hold the bed warm between sessions | Accepted |
 | [0006](0006-adaptive-bed-mesh.md) | Adaptive mesh per print instead of a stale saved mesh | Accepted |
-| [0007](0007-mcu-firmware-update-flow.md) | MCU firmware updates run outside Moonraker | Accepted |
+| [0007](0007-joystick-jog-via-moonraker.md) | Joystick jog drives the toolhead through Moonraker, not Klipper | Accepted |
+| [0008](0008-mcu-firmware-update-flow.md) | MCU firmware updates run outside Moonraker | Accepted |
 
 ## Why these exist
 
