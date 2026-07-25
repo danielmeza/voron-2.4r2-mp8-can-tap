@@ -18,6 +18,19 @@ Host Klipper is pinned to the same commit these were built from:
 CAN bitrate is **1000000** everywhere — `/etc/network/interfaces.d/can0`, all three
 configs, and Katapult. Changing it means changing all of them together.
 
+## Automated: run this after every Moonraker "update all"
+
+```powershell
+pwsh ./scripts/Update-VoronMcuFirmware.ps1            # ebb + manta
+pwsh ./scripts/Update-VoronMcuFirmware.ps1 -DryRun    # show the plan only
+pwsh ./scripts/Update-VoronMcuFirmware.ps1 -Boards all
+```
+
+It compares each MCU against the host and flashes **only** what mismatches, so running
+it when everything is current is a no-op. Moonraker has no hook to do this itself —
+see [ADR-0007](../docs/adr/0007-mcu-firmware-update-flow.md). The manual steps below
+are the fallback and the explanation of what the script does.
+
 ## Rebuilding
 
 ```bash
