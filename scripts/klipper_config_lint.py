@@ -247,6 +247,64 @@ def check_pin_reuse(loader, alias_maps):
                 ["%s:%d [%s] %s" % (f, ln, s, o) for s, o, f, ln in users]))
 
 
+
+# Jinja/Klipper names that are always available inside a macro body.
+_MACRO_BUILTINS = {
+    "printer", "params", "rawparams", "math", "printer_state", "action_respond_info",
+    "action_raise_error", "action_emergency_stop", "action_call_remote_method",
+    "true", "false", "none", "range", "int", "float", "string", "dict", "list",
+    "abs", "round", "min", "max", "loop", "namespace",
+}
+
+
+def check_macro_variables(loader):
+    """A macro referencing {name} that is not one of ITS OWN variable_* names.
+
+    Klipper only exposes a gcode_macro's variable_* as bare names inside that same
+    macro. Declaring a variable on one macro and using it in another renders as an
+    EMPTY string -- which silently produces a malformed command rather than an
+    error at config load. This caught a real bug where PRINT_END used
+    {party_seconds} that was declared on PRINT_START, emitting
+    "UPDATE_DELAYED_GCODE ID=... DURATION=" and aborting the macro mid-print.
+    """
+    # variable_* declared per macro
+    declared = defaultdict(set)
+    for (section, option), places in loader.assignments.items():
+        if section.startswith("gcode_macro ") and option.startswith("variable_"):
+            declared[section].add(option[len("variable_"):])
+
+    for (section, option), places in loader.assignments.items():
+        if not section.startswith("gcode_macro ") or option != "gcode":
+            continue
+        body = places[-1][0]
+        own = declared.get(section, set())
+        # bare {name} / {name|filter} / {name * 2} substitutions, and {% ... name ... %}
+        names = set()
+        for expr in re.findall(r"\{([^{}%][^{}]*)\}", body):
+            # (?<![.\w]) skips attribute access -- in `client.user_resume_macro`
+            # the tail belongs to `client`, not to this macro's own scope.
+            for tok in re.findall(r"(?<![.\w])[A-Za-z_][A-Za-z0-9_]*", expr):
+                names.add(tok)
+        suspicious = []
+        for n in sorted(names):
+            if n.lower() in _MACRO_BUILTINS or n in own:
+                continue
+            # locally {% set %}-ed names are fine
+            if re.search(r"\{%-?\s*set\s+" + re.escape(n) + r"\b", body):
+                continue
+            # anything declared on ANOTHER macro is the bug we are hunting
+            for other, vars_ in declared.items():
+                if other != section and n in vars_:
+                    suspicious.append((n, other))
+                    break
+        for n, other in suspicious:
+            loader.findings.append(Finding(
+                ERROR, "cross-macro-variable",
+                "[%s] gcode uses {%s}, but variable_%s is declared on [%s]. "
+                "Klipper scopes variable_* to its own macro, so this renders EMPTY."
+                % (section, n, n, other),
+                ["%s:%d" % (places[-1][1], places[-1][2])]))
+
 def main(argv):
     root = argv[1] if len(argv) > 1 else os.path.join("config", "klippy.conf")
     if not os.path.exists(root):
@@ -257,6 +315,7 @@ def main(argv):
     check_conflicts(loader)
     check_aliases(loader, alias_maps)
     check_pin_reuse(loader, alias_maps)
+    check_macro_variables(loader)
 
     order = {ERROR: 0, WARN: 1, INFO: 2}
     findings = sorted(loader.findings, key=lambda f: (order[f.level], f.kind, f.message))

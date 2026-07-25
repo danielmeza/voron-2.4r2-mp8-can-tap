@@ -74,3 +74,19 @@ Rejected alternatives:
   nozzle is cooling *with pressure behind it* — i.e. right after a purge. With no purge
   there is nothing to draw out. Left in place (it matters if purging is ever enabled) but
   documented in the macro so it is not mistaken for useful work.
+
+---
+
+## Revisions
+
+### 2026-07-24 — the ooze-pull is now skipped outright when no purge ran
+
+This ADR documented the 40 mm / 120 mm-per-min climb as a ~20 s no-op on the no-purge
+path but left it in place. It is now conditional: the slow climb only runs when
+`PURGE > 150`, and the no-purge path just clears the tube at travel speed.
+
+**Measured:** `CLEAN_NOZZLE` went from **48.7 s to 18.0 s**, confirmed by the toolhead
+sitting at Z10.2 instead of Z45.2 during the wipe. Part of that gain is a companion
+change — `PRINT_START` now passes `Z_HOME=0`, because `QUAD_GANTRY_LEVEL` runs
+immediately afterwards and ends with its own `G28 Z`, making the macro's trailing home a
+duplicate TAP probe cycle.
