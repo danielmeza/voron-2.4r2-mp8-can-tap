@@ -30,10 +30,34 @@ That last-wins rule is the root cause of most findings here.
 
 ---
 
-## Phase 0 — Config hygiene ✅ DONE
+## Status — measured on the machine
 
-Resolve silent conflicts so later tuning measures something real. **Repo only —
-not yet synced to the machine.**
+| Phase | State |
+|---|---|
+| 0 — config hygiene | ✅ done, synced, verified |
+| 0.5 — mainsail macro ownership | ✅ done; `_USER_CANCEL` fired during a real cancel |
+| 1 Tier A — gate / adaptive mesh / keep-warm | ✅ implemented and verified |
+| 1 Tier B — frame sensor + `z_thermal_adjust` | ⛔ waiting on a thermistor |
+| 2 — mechanical (belts, gantry squaring) | ⛔ not started |
+| 3 — Ellis tuning sequence | ⛔ not started |
+| 4 — MCU firmware | ✅ all three MCUs on v0.13, warnings 6 → 0 |
+
+**Measured results**
+
+- `PROBE_ACCURACY`: **std dev 0.001858, range 0.005000** — passes Ellis' 0.004 / 0.0125 with ~2.5× margin
+- QGL converges in 1–2 retries (0.026 → 0.005, tolerance 0.01)
+- Adaptive mesh **verified live**: *Found 1 objects*, probe count **(3,3)** — 9 points, **44 s** vs ~12 min for the 121-point fallback
+- Chamber heating: **0.29 °C/min** with the exhaust fighting the soak → **~1.1 °C/min** after holding the exhaust above the gate
+- `PRINT_START` overhead: **~28 min → 15.5 min** measured; bed heat (355 s) is now the largest single cost
+
+**Biggest remaining lever:** `STANDBY_WARM` (now that it actually fires) should remove most
+of the 355 s bed heat for back-to-back sessions.
+
+---
+
+## Phase 0 — Config hygiene ✅ DONE (synced & verified on the machine)
+
+Resolve silent conflicts so later tuning measures something real.
 
 - [x] `[tmc2209 stepper_z/z1/z2/z3] run_current` → **0.9 A on all four**
       (43 % of the OMC 17HS24-2104S 2.1 A rating; Ellis: start 40–50 %, max 70 %).
@@ -59,21 +83,17 @@ not yet synced to the machine.**
 - [x] Tracked `config/mainsail.cfg` — a **literal** (non-wildcard) include, so
       Klipper hard-errors without it and the repo could not restore.
 
-**Result:** linter goes from 8 errors / 2 warnings / 8 info → only the mainsail
-override conflicts below (which are a design decision, not hygiene).
+**Result:** linter went 8 errors / 2 warnings / 8 info → **0 / 0 / 0**.
 
-### Not yet synced to the machine
+### Synced and verified
 
-Phase 0 lives in git only. Syncing changes real behaviour — the Z current change
-(z1 0.8→0.9, others 1.0→0.9) is the only functional one.
-
-- [ ] Diff repo vs machine, upload, `RESTART`, **[verify]** klipper `ready`
-- [ ] **[verify]** effective Z currents are 0.9 on all four
-- [ ] **[verify]** `resonance_tester.probe_points == [[175,175,20]]`
+- [x] Diff repo vs machine, upload, `RESTART`, **[verify]** klipper `ready`
+- [x] **[verify]** effective Z currents are 0.9 on all four
+- [x] **[verify]** `resonance_tester.probe_points == [[175,175,20]]`
 
 ---
 
-## Phase 0.5 — Decision needed: mainsail.cfg overrides your macros ⚠️
+## Phase 0.5 — mainsail.cfg overrides your macros ✅ DONE
 
 Discovered only after tracking `mainsail.cfg`. Because `[include mainsail.cfg]` is
 the **last** include, it wins every conflict. **Confirmed live on the machine:**
@@ -103,9 +123,9 @@ versions are genuinely more robust — they handle runout-sensor state, `can_ext
 checks, idle-timeout save/restore, and UI prompts that yours do not. Your copies are
 already dead, so keeping mainsail's is the *status quo*, not a change.
 
-- [ ] Delete `[gcode_macro PAUSE]`, `[gcode_macro RESUME]`, `[gcode_macro CANCEL_PRINT]`
+- [x] Delete `[gcode_macro PAUSE]`, `[gcode_macro RESUME]`, `[gcode_macro CANCEL_PRINT]`
       from `macros/printing.cfg`
-- [ ] Add `[gcode_macro _CLIENT_VARIABLE]` (template is at the top of `mainsail.cfg`)
+- [x] Add `[gcode_macro _CLIENT_VARIABLE]` (template is at the top of `mainsail.cfg`)
       with the hooks below. **Note:** the `user_*` variables accept a *single line
       only* — point them at a macro.
 
@@ -136,8 +156,8 @@ it. Cherry-pick instead:
 All four referenced macros exist: `STOP_HEAT_SOAK`/`CANCEL_HEAT_SOAK` (`heatsoak.cfg`),
 `PARTS_FAN_OFF` (`macros/parts_fan.cfg`), `_CASELIGHT_ON/OFF` (`chamber/leds.cfg`).
 
-- [ ] Re-run linter until clean
-- [ ] **[verify]** after sync: `rename_existing` is `PAUSE_BASE`/`RESUME_BASE`/`CANCEL_PRINT_BASE`
+- [x] Re-run linter until clean
+- [x] **[verify]** after sync: `rename_existing` is `PAUSE_BASE`/`RESUME_BASE`/`CANCEL_PRINT_BASE`
       and a test cancel actually stops a running heat soak
 
 ---
@@ -161,22 +181,22 @@ not the clock.
 
 ### Tier A — no hardware, do now
 
-- [ ] **Adaptive meshing.** `BED_MESH_CALIBRATE ADAPTIVE=1 ADAPTIVE_MARGIN=5`
+- [x] **Adaptive meshing.** `BED_MESH_CALIBRATE ADAPTIVE=1 ADAPTIVE_MARGIN=5`
       (supported in your v0.13). Probes only the print's footprint, so a small
       centred part costs seconds instead of a full 11×11 sweep — while large prints,
       which is where the outside-centre adhesion actually bites, still get correct
       data. This removes the "fresh mesh vs. fast start" trade-off entirely.
-- [ ] **Replace the fixed soak timer with a temperature gate.** Today: 15/10/5 min
+- [x] **Replace the fixed soak timer with a temperature gate.** Today: 15/10/5 min
       flat. Instead `TEMPERATURE_WAIT SENSOR='temperature_fan chamber' MINIMUM=<target>`
       plus a sanity cap. Warm machine → instant. Cold machine → waits properly.
-- [ ] **Keep-warm between sessions.** Hold the bed at a standby temp after
+- [x] **Keep-warm between sessions.** Hold the bed at a standby temp after
       `PRINT_END` so the frame doesn't cool during the part swap; auto-off after N
       minutes. Next session then passes the temperature gate immediately.
       ⚠️ `[idle_timeout] timeout: 1800` runs `TURN_OFF_HEATERS` after 30 min idle —
       keep-warm must account for that or it will be silently killed.
 - [ ] **Wash the plate** with dish soap and water, air dry. Ellis: **IPA alone is
       insufficient** for maintenance cleaning.
-- [ ] **[verify] `PROBE_ACCURACY`** — Ellis' bar: **std dev ≤ 0.004, range ≤ 0.0125**.
+- [x] **[verify] `PROBE_ACCURACY`** — Ellis' bar: **std dev ≤ 0.004, range ≤ 0.0125**.
       If this fails, stop — fix probing before tuning anything else.
 - [ ] Disable **z-hop on the first layer** in the slicer.
 - [ ] Consider first-layer line width **120 %**.
@@ -426,7 +446,7 @@ power-cycle the board. Keep that SD handy **before** starting.
 - [x] **Manta flashed** → `v0.13.0-708-g7046bd00e`, verified, USB-CAN bridge returned
       (`can0 UP`, `1d50:606f` gs_usb)
 - [x] **[verify]** `deprecated_mcu_code` warnings **6 → 0**
-- [ ] **Linux MCU** — built and staged at `~/klipper-fw-backups/klipper_mcu-v0.13.elf`,
+- [x] **Linux MCU** — built and staged at `~/klipper-fw-backups/klipper_mcu-v0.13.elf`,
       but installing needs root and `sudo` requires a password. One command:
       ```bash
       sudo systemctl stop klipper
@@ -434,7 +454,7 @@ power-cycle the board. Keep that SD handy **before** starting.
       sudo systemctl restart klipper-mcu && sudo systemctl start klipper
       ```
       Low priority: it currently emits **zero** warnings, so nothing is actually broken.
-- [ ] **[verify]** `QUAD_GANTRY_LEVEL` completes and first layer unchanged (needs a
+- [x] **[verify]** `QUAD_GANTRY_LEVEL` completes and first layer unchanged (needs a
       clear build plate — see below)
 
 Build configs for all three boards are preserved in
@@ -455,7 +475,7 @@ Build configs for all three boards are preserved in
       `MOONS CSE14HRA1L410A` in another — which is actually installed?
 - [ ] `mainsail.cfg` is managed by Moonraker's update manager and will be
       overwritten on update — expect churn now that it is tracked
-- [ ] SSH key auth not set up; blocks reflash and any host-side work
+- [x] SSH key auth not set up; blocks reflash and any host-side work
 
 ---
 
