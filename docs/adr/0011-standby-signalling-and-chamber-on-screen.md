@@ -79,3 +79,24 @@ does, so this costs one extra object and no extra hardware transaction.
   be mistaken for live config; nothing in it runs today.
 - LED state is now a real safety signal, so anything that changes standby must keep it
   truthful. A lit toolhead means hot bed and energised motors.
+
+---
+
+## Revisions
+
+### 2026-07-24 — KlipperScreen rejects square brackets, even inside comments
+
+Adding `titlebar_items` raised a KlipperScreen error banner:
+*"Section headers have extra information after brackets possible newline issue"*.
+
+Klipper itself was fine — 0 warnings, the print kept running. The banner comes from
+KlipperScreen's own validator (`ks_includes/config.py`), which scans the raw file with a
+regex matching *any content, a closing bracket, then at least one more character* — and
+**does not skip comment lines**. The explanatory comment added alongside the setting
+mentioned a config section name in brackets, and that was enough to trip it.
+
+**Rule for `KlipperScreen.conf`: no square brackets anywhere except real section
+headers — not even in comments.** The first attempt at a fix quoted the offending regex
+and tripped the same check, which is a good illustration of how easy it is to reintroduce.
+
+The file is now tracked in `config/moonraker/` so this cannot silently regress.
