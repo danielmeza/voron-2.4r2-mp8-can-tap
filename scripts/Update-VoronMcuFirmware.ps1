@@ -24,6 +24,11 @@
 .PARAMETER SshTarget
     SSH destination. Use a ~/.ssh/config alias so keys/user are handled there.
 
+.PARAMETER RootSshTarget
+    Root SSH destination, used only to install the Linux MCU binary into
+    /usr/local/bin (the one step that genuinely needs root). If this is not
+    reachable the script stages the binary and prints the manual commands instead.
+
 .PARAMETER ConfigDir
     Directory holding the per-board Klipper .config files (repo's firmware/).
 
@@ -49,8 +54,9 @@
 #>
 [CmdletBinding()]
 param(
-    [string]   $PrinterHost = '192.168.68.69',
-    [string]   $SshTarget   = 'voron',
+    [string]   $PrinterHost   = '192.168.68.69',
+    [string]   $SshTarget     = 'voron',
+    [string]   $RootSshTarget = 'voron-root',
     [string]   $ConfigDir   = (Join-Path $PSScriptRoot '..' 'firmware'),
     [ValidateSet('ebb', 'manta', 'linux', 'all')]
     [string[]] $Boards      = @('ebb', 'manta'),
@@ -123,14 +129,56 @@ function Invoke-Ssh {
     <# Run a bash snippet on the printer. Returns combined output; throws on non-zero. #>
     param(
         [Parameter(Mandatory)][string] $Script,
-        [switch] $AllowFailure
+        [switch] $AllowFailure,
+        [switch] $AsRoot
     )
-    $output = $Script | & ssh -o BatchMode=yes -o ConnectTimeout=10 $SshTarget 'bash -s' 2>&1
+    $target = if ($AsRoot) { $RootSshTarget } else { $SshTarget }
+    $output = $Script | & ssh -o BatchMode=yes -o ConnectTimeout=10 $target 'bash -s' 2>&1
     $code = $LASTEXITCODE
     if ($code -ne 0 -and -not $AllowFailure) {
         throw "Remote command failed (exit $code):`n$($output -join "`n")"
     }
     return ($output -join "`n")
+}
+
+function Test-RootSsh {
+    <# Is key-based root available? Determines whether the Linux MCU can be installed. #>
+    try {
+        $out = Invoke-Ssh -Script 'id -u' -AsRoot -AllowFailure
+        return ($out.Trim() -eq '0')
+    } catch { return $false }
+}
+
+function Install-LinuxMcu {
+    <#
+      Replicates klipper's scripts/flash-linux.sh, which is all 'make flash' does for
+      a Linux MCU target: stop services, copy the ELF to /usr/local/bin/klipper_mcu,
+      restart. Backs up the outgoing binary so the change is reversible.
+    #>
+    $script = @'
+set -e
+STAGED=/home/biqu/klipper-fw-backups/klipper_mcu-staged.elf
+[ -f "$STAGED" ] || { echo "STAGED_BINARY_MISSING"; exit 1; }
+mkdir -p /home/biqu/klipper-fw-backups
+if [ -f /usr/local/bin/klipper_mcu ] && [ ! -f /home/biqu/klipper-fw-backups/klipper_mcu-PREVIOUS.elf ]; then
+    cp -a /usr/local/bin/klipper_mcu /home/biqu/klipper-fw-backups/klipper_mcu-PREVIOUS.elf
+fi
+systemctl stop klipper
+systemctl stop klipper-mcu
+sleep 2
+rm -f /usr/local/bin/klipper_mcu
+cp "$STAGED" /usr/local/bin/klipper_mcu
+chown root:root /usr/local/bin/klipper_mcu
+chmod 755 /usr/local/bin/klipper_mcu
+sync
+systemctl start klipper-mcu
+sleep 3
+systemctl start klipper
+echo "INSTALL_OK"
+'@
+    $out = Invoke-Ssh -Script $script -AsRoot
+    if ($out -match 'STAGED_BINARY_MISSING') { throw 'Staged Linux MCU binary not found on the printer.' }
+    if ($out -notmatch 'INSTALL_OK')         { throw "Linux MCU install did not complete:`n$out" }
 }
 
 function Get-PrinterFacts {
@@ -306,10 +354,11 @@ $todo = @()
 foreach ($spec in $BoardSpecs) {
     if ($spec.Key -notin $Boards) { continue }
     $current = $facts.McuVersions[$spec.Key]
-    $matches = ($current -eq $facts.HostVersion)
-    $mark = if ($matches) { 'up to date' } else { 'NEEDS FLASH' }
+    # NB: do not name this $matches -- that is a PowerShell automatic variable.
+    $isCurrent = ($current -eq $facts.HostVersion)
+    $mark = if ($isCurrent) { 'up to date' } else { 'NEEDS FLASH' }
     Write-Info ("{0,-10} {1,-30} {2}" -f $spec.Key, $current, $mark)
-    if (-not $matches -or $Force) { $todo += $spec }
+    if (-not $isCurrent -or $Force) { $todo += $spec }
 }
 
 if (-not $todo) {
@@ -318,8 +367,15 @@ if (-not $todo) {
     exit 0
 }
 
+$script:HasRoot = $false
 if ($todo | Where-Object { $_.NeedsRoot }) {
-    Write-Warn 'The Linux MCU needs root on the printer; this script builds and stages it but cannot install it.'
+    $script:HasRoot = Test-RootSsh
+    if ($script:HasRoot) {
+        Write-Ok "key-based root available ($RootSshTarget) -- Linux MCU can be installed automatically"
+    } else {
+        Write-Warn "No key-based root at '$RootSshTarget'. The Linux MCU will be built and staged only."
+        Write-Info "  Fix with: ssh-copy-id -i ~/.ssh/id_ed25519_voron.pub root@$PrinterHost"
+    }
 }
 
 Write-Step ("Will flash: " + (($todo | ForEach-Object { $_.Key }) -join ', '))
@@ -333,12 +389,19 @@ foreach ($spec in $todo) {
     Build-Firmware -Spec $spec -ExpectedVersion $facts.HostVersion
 
     if ($spec.NeedsRoot) {
-        # Stage only -- installing to /usr/local/bin requires a password we do not have.
         Invoke-Ssh -Script 'cp ~/klipper/out/klipper.elf ~/klipper-fw-backups/klipper_mcu-staged.elf' | Out-Null
-        Write-Warn 'Staged at ~/klipper-fw-backups/klipper_mcu-staged.elf. Finish with:'
-        Write-Info '  sudo systemctl stop klipper'
-        Write-Info '  sudo cp ~/klipper-fw-backups/klipper_mcu-staged.elf /usr/local/bin/klipper_mcu'
-        Write-Info '  sudo systemctl restart klipper-mcu && sudo systemctl start klipper'
+        if ($script:HasRoot) {
+            Write-Info 'installing to /usr/local/bin/klipper_mcu (via root)...'
+            Install-LinuxMcu
+            $state = Wait-KlipperReady
+            if ($state -eq 'ready') { Write-Ok 'linux MCU installed; klipper ready' }
+            else { Write-Err "klipper state after linux MCU install: $state" }
+        } else {
+            Write-Warn 'No key-based root available. Staged at ~/klipper-fw-backups/klipper_mcu-staged.elf; finish with:'
+            Write-Info '  sudo systemctl stop klipper'
+            Write-Info '  sudo cp ~/klipper-fw-backups/klipper_mcu-staged.elf /usr/local/bin/klipper_mcu'
+            Write-Info '  sudo systemctl restart klipper-mcu && sudo systemctl start klipper'
+        }
         continue
     }
 
