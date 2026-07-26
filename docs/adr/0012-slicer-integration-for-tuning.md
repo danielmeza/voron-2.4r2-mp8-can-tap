@@ -122,3 +122,30 @@ Written into `gantry/input_shaping.cfg` rather than via `SAVE_CONFIG`. `SAVE_CON
 would append `[input_shaper]` to `klippy.conf`'s autosave block, which **overrides** the
 repo file and violates [ADR-0001](0001-single-owner-config-sections.md) — the repo copy
 would silently become decorative.
+
+### 2026-07-26 — M201/M203 added; the gate is open
+
+Auditing what a PrusaSlicer-lineage slicer can emit found two more unimplemented
+gcodes beyond `M205`: **`M201`** (max acceleration) and **`M203`** (max feedrate). Both
+appear when "emit machine limits to gcode" is enabled, and both would have raised
+`Unknown command` and aborted the print. Added as accept-and-ignore shims.
+
+They are deliberately **not** mapped onto `SET_VELOCITY_LIMIT`. Machine limits belong in
+the Klipper config; a slicer silently lowering them mid-print is worse than ignoring the
+command. The right setting is *"use for time estimate only"*.
+
+Verified live — every gcode such a slicer emits now succeeds:
+
+```
+M201 X5700 Y5700  OK      M205 X8 Y8    OK      M73 P10 R5   OK
+M203 X400 Y400    OK      G11           OK      M221 S100    OK
+M204 P5700 T5700  OK      M900 K0.055   OK
+```
+
+`G10` returned an error, which turned out to be correct behaviour rather than a fault:
+*"Extrude below minimum temp"* with the hotend at 47.9 °C against `min_extrude_temp: 160`.
+The cold-extrude guard. `G11` passed because unretract-when-not-retracted is a no-op.
+Firmware retraction itself is sound.
+
+Concrete profile, with every value read from the live machine, is in
+[`docs/SLICER_SETUP.md`](../SLICER_SETUP.md).

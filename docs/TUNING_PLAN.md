@@ -399,7 +399,9 @@ steps cannot be tuned without either a shim or a different slicer.
 - [ ] **Re-run `SHAPER_CALIBRATE` first** — current values (`mzv`, x=47.6, y=33) were
       measured at the old off-centre `probe_points`, and shaping changes how
       everything else prints
-- [ ] Decide on the tuning slicer (OrcaSlicer recommended; Cura can stay for production)
+- [x] Tuning slicer decided: **OrcaSlicer** for tuning, Cura may stay for production
+- [ ] Apply [SLICER_SETUP.md](SLICER_SETUP.md) and **verify the emitted gcode** against
+      its checklist before trusting any tuning result
 - [ ] Extruder calibration (rotation_distance)
 - [ ] Build surface preparation
 - [ ] First layer squish
