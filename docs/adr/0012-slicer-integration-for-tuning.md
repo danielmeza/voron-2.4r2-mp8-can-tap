@@ -75,3 +75,50 @@ centre (ADR-0001). They describe the machine at the wrong place.
   OrcaSlicer is adopted, those values become live and must be tuned, not assumed.
 
 Full analysis in [`docs/SLICER_INTEGRATION.md`](../SLICER_INTEGRATION.md).
+
+---
+
+## Revisions
+
+### 2026-07-26 — input shaping re-run; two root causes found first
+
+Re-running `SHAPER_CALIBRATE` surfaced two problems that had to be fixed before the
+measurement meant anything.
+
+**1. `axes_map` was wrong.** A stationary `ACCELEROMETER_QUERY` reported gravity
+(~9550 mm/s²) on the **sensor's X axis** while the config had the default identity map
+`x,y,z` — i.e. Klipper was told sensor-X was printer-X while it was actually pointing
+up. BTT's official sample config for this exact board specifies **`axes_map: z,-y,x`**.
+After the fix, gravity reads on the third value (9474.6) as it should. The previous
+shaper values were measured through this wrong mapping *and* at `probe_points 100,100`
+instead of bed centre — both inherited from that same BTT sample, which targets a
+smaller printer.
+
+**2. The sweep shut the printer down.** The first attempt failed with:
+
+```
+Unable to obtain 'spi_transfer_response'
+MCU 'MP8' shutdown: Timer too close
+```
+
+Klipper's message blames an overloaded host. It was not: host load was **0.42**, 550 MB
+free, and the CAN bus showed **zero** errors — no bus-off, no arbitration lost, no
+retransmits. The real cause is bandwidth and timing headroom. The ADXL streams
+3200 samples/s from the EBB over the same 1 Mbit bus the MP8 uses for step timing, and
+`accel_per_hz: 75` demands `75 × 133 = 9975 mm/s²` at the top of the sweep — nearly
+double this printer's `max_accel` of 5700.
+
+Fixed by lowering **`accel_per_hz` to 50** (peak ~6667 mm/s²) and running one axis per
+invocation. Both axes then completed cleanly.
+
+**Result** — measured values, now live:
+
+| Axis | Old (invalid) | **New** | Runner-up |
+|---|---|---|---|
+| X | mzv 47.6 Hz | **2hump_ei 78.6 Hz** (0.0 % vib, smoothing 0.099) | mzv 51.2 Hz (4.7 %, 0.084) |
+| Y | mzv 33.0 Hz | **mzv 35.8 Hz** (0.0 % vib, smoothing 0.159) | zv 36.8 Hz (6.3 %, 0.131) |
+
+Written into `gantry/input_shaping.cfg` rather than via `SAVE_CONFIG`. `SAVE_CONFIG`
+would append `[input_shaper]` to `klippy.conf`'s autosave block, which **overrides** the
+repo file and violates [ADR-0001](0001-single-owner-config-sections.md) — the repo copy
+would silently become decorative.
