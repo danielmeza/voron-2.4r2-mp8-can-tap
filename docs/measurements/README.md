@@ -5,6 +5,7 @@ Raw data kept so later conclusions can be re-checked against what was actually o
 | File | What | Conditions |
 |---|---|---|
 | `resonances_z_2026-07-26.csv` | Z-axis frequency response | `TEST_RESONANCES AXIS=Z ACCEL_PER_HZ=3.0`, toolhead at 175,175,20 |
+| `bed_mesh_cold_vs_hot_2026-07-26.csv` | Full 11×11 bed mesh, cold and hot | QGL + `G28 Z` before each; cold at 34 °C, hot at 100 °C after a 10 min soak |
 
 ## Z resonance, 2026-07-26 — gantry diagnostic
 
@@ -69,3 +70,48 @@ static measurement — re-mesh after gantry squaring, or a dial indicator on the
 - `accel_chip_z` had to be added: `accel_chip` maps to the **xy** pair only, and
   `accel_chip_z` defaults to empty (Klipper allows a different, often bed-mounted sensor
   for Z, so it will not assume). Same physical ADXL. Diagnostic-only.
+
+
+---
+
+## Bed mesh, cold vs hot — 2026-07-26
+
+Two full 11×11 meshes under controlled conditions, each preceded by its own QGL and
+`G28 Z` so the Z reference was re-established both times.
+
+| | Range |
+|---|---|
+| **Cold** (bed 34 °C) | **0.3100 mm** |
+| **Hot** (bed 100 °C, 10 min soak) | **0.1231 mm** |
+
+**The bed is ~60 % flatter at printing temperature.**
+
+Per-row Y averages, front → back:
+
+| Y | cold | hot | Δ |
+|---|---|---|---|
+| 30 | −0.2685 | −0.0151 | +0.2534 |
+| 117 | −0.3105 | −0.0148 | +0.2956 |
+| 204 | −0.3237 | −0.0524 | +0.2712 |
+| 320 | −0.2525 | −0.0203 | +0.2322 |
+
+Point-by-point change: mean **+0.2687 mm**, span **0.3213 mm**.
+
+### What this means
+
+- **Never mesh a cold bed.** At 34 °C the plate is dished ~0.3 mm relative to the
+  Z-home point; at 100 °C it flattens to ~0.12 mm. A cold mesh describes a shape the
+  printer never prints on. `PRINT_START` already meshes after `M190`, which is correct —
+  this measurement is why that ordering matters.
+- **The mean +0.27 mm is a near-uniform Z shift** — thermal expansion of the bed and
+  frame. It is re-zeroed here because `G28 Z` ran at each temperature. During a print,
+  drift *after* homing is exactly what
+  [`z_thermal_adjust`](../adr/0004-frame-temperature-sensing.md) compensates, and this
+  gives a sense of the magnitude involved.
+- **At print temperature the bed is good.** 0.1231 mm across a 350 mm plate, against
+  0.1487 mm for the previously saved profile — about 0.026 mm apart, taken at different
+  times. That is reasonable repeatability, and the adaptive mesh compensates it every
+  print.
+- **The saddle is not a defect to chase.** With belts in spec, the gantry squared, and
+  the hot shape both modest and repeatable, the remaining deviation is the plate itself
+  behaving normally under heat.
