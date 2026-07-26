@@ -357,12 +357,33 @@ Ellis: *"Most bed mesh issues are caused by the gantry rather than the bed itsel
 - Belt tension is **ruled out** as a cause of the 0.1487 mm mesh saddle.
 - [ ] **[measure]** Cross-calibrate belt linear density: the Belter and the 140 Hz
       frequency rule disagree by 2-2.6x. Measure mu with both tools and settle it.
-- [ ] [Voron V2 gantry squaring](https://ellis3dp.com/Print-Tuning-Guide/articles/voron_v2_gantry_squaring.html)
+- [x] [Voron V2 gantry squaring](https://ellis3dp.com/Print-Tuning-Guide/articles/voron_v2_gantry_squaring.html) — **already done** (owner confirmed 2026-07-26)
       — float gantry, de-rack, retension, **QGL repeatedly after full heat soak,
       then tighten Z joints while hot**
 - [ ] Check for debris under the spring steel; check PEI for bubbling
 - [ ] Revisit bed screw tightness while hot
-- [ ] Re-mesh and compare range **[verify]**
+- [ ] **[measure] Take a SECOND full mesh and diff it against the first.** With belts in
+      spec and the gantry squared, the remaining question is no longer *"how do I flatten
+      the bed?"* but *"is the saddle repeatable?"* — see the note below.
+
+### The saddle is probably not a defect to chase
+
+**QGL corrects a plane. It cannot correct curvature.** The measured shape is a saddle —
+middle of Y low, both ends high — which is curvature, not tilt. No amount of QGL or
+gantry squaring removes it, and that is exactly what bed mesh exists to compensate.
+
+With belt tension in spec (three independent confirmations) and the gantry squared, the
+remaining 0.1487 mm is almost certainly the bed assembly itself: plate flatness plus
+mounting. Since adaptive meshing now runs before **every** print
+([ADR-0006](adr/0006-adaptive-bed-mesh.md)), that shape is measured and compensated each
+time.
+
+So the thing that actually matters is **repeatability**, not magnitude. If the mesh taken
+minutes before a print matches the bed's state during that print, the saddle is
+irrelevant. The residual risk is thermal drift between meshing and printing — which is
+[Tier B](adr/0004-frame-temperature-sensing.md), still blocked on the frame thermistor.
+
+Cheap checks still worth doing (both are common causes and take minutes):
 
 ---
 
