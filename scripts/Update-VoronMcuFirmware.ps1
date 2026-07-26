@@ -54,7 +54,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]   $PrinterHost   = '192.168.68.69',
+    [string]   $PrinterHost   = 'voron.local',
     [string]   $SshTarget     = 'voron',
     [string]   $RootSshTarget = 'voron-root',
     [string]   $ConfigDir   = (Join-Path $PSScriptRoot '..' 'firmware'),

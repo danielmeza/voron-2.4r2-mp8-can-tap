@@ -26,7 +26,7 @@
     .\install.ps1
 
 .EXAMPLE
-    .\install.ps1 -Target biqu@192.168.68.69
+    .\install.ps1 -Target biqu@voron.local
 
 .EXAMPLE
     .\install.ps1 -DeployConfig

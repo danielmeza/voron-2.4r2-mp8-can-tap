@@ -248,7 +248,7 @@ From Windows PowerShell (or PowerShell 7 on any platform):
 ```powershell
 cd extensions
 .\deploy\install.ps1                             # default printer
-.\deploy\install.ps1 -Target biqu@192.168.68.69  # somewhere else
+.\deploy\install.ps1 -Target biqu@voron.local  # somewhere else
 .\deploy\install.ps1 -DeployConfig               # also overwrite appsettings.json
 ```
 

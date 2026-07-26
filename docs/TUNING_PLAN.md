@@ -370,6 +370,15 @@ Ellis: *"Most bed mesh issues are caused by the gantry rather than the bed itsel
 
 Do **not** start until Phase 1/2 give a consistent first layer.
 
+**Read [SLICER_INTEGRATION.md](SLICER_INTEGRATION.md) first** — the slicer currently
+emits almost nothing (no `M204`, no `G10`/`G11`, no `M900`), so several of these
+steps cannot be tuned without either a shim or a different slicer.
+[ADR-0012](adr/0012-slicer-integration-for-tuning.md).
+
+- [ ] **Re-run `SHAPER_CALIBRATE` first** — current values (`mzv`, x=47.6, y=33) were
+      measured at the old off-centre `probe_points`, and shaping changes how
+      everything else prints
+- [ ] Decide on the tuning slicer (OrcaSlicer recommended; Cura can stay for production)
 - [ ] Extruder calibration (rotation_distance)
 - [ ] Build surface preparation
 - [ ] First layer squish
@@ -412,7 +421,7 @@ software only (`klipper`, `moonraker`, `mainsail`, `KlipperScreen`, `crowsnest`,
 `sonar`, `timelapse`); flashing needs `make` and a shell. Authorize the key first:
 
 ```bash
-ssh-copy-id -i ~/.ssh/id_ed25519_voron.pub biqu@192.168.68.69
+ssh-copy-id -i ~/.ssh/id_ed25519_voron.pub biqu@voron.local
 ```
 
 ### Runbook (run each step, check the output before continuing)
