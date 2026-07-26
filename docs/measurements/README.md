@@ -23,25 +23,41 @@ should not — Z moves are slow and short, and surface artifacts come from X/Y).
 
 ### What it says
 
-- **A clean dominant Z mode near 53 Hz** — the gantry bouncing on its Z belts.
+**Solid:**
+
+- **A clean dominant Z mode at ~53 Hz** — the gantry bouncing on its Z belts. Sharp and
+  well defined: `psd_z` climbs from 7.5 % of peak at 45.5 Hz to 100 % at 53.4 Hz and back
+  to 25 % by 58 Hz. This is a genuine structural resonance and a useful **baseline
+  number** — re-measure after any gantry work and see whether it moves.
 - **Only 1 % of the energy sits below 30 Hz.** A slack-belt gantry shows up as
-  low-frequency compliance, so this corroborates the Belter readings
-  ([ADR-0010](../adr/0010-belt-tension-method.md)): tension is not the problem.
-- **Vertical excitation produces significant *Y* motion** (27 % of the Z peak, at
-  essentially the same frequency). That is a coupled mode — driving the gantry up and
-  down makes it move front-to-back, i.e. the gantry pitches rather than staying rigid
-  in Y.
+  low-frequency compliance, and there is essentially none. Third independent confirmation
+  that belt tension is not the problem (after the Belter readings,
+  [ADR-0010](../adr/0010-belt-tension-method.md)).
+- **X coupling is negligible** — `psd_x/psd_z` stays at 0.00–0.05 through the mode.
 
-### How much to read into it
+**Retracted — the Y cross-coupling is not real.**
 
-The measured bed mesh is a **Y-dominated saddle** (front `+0.014`, middle `−0.055`,
-back `+0.033`, range 0.1487 mm). The Z↔Y coupling points at compliance along the **same
-axis** as that saddle, which strengthens the case that the remaining Phase 2 suspects
-are gantry-side (squaring / de-racking / bed mounting) rather than the bed itself —
-consistent with Ellis' *"most bed mesh issues are caused by the gantry."*
+An earlier reading of this data claimed 27 % Z→Y coupling and took it as evidence that
+the gantry pitches front-to-back. Checking the ratio *across frequency* rather than
+peak-to-peak shows otherwise:
 
-**But these are different measurements.** The mesh saddle is a *static* deflection; this
-is a *dynamic* mode. Agreement in axis is suggestive, not proof of a shared cause.
+| `psd_y/psd_z` at the 53 Hz mode (±4 Hz) | away from it |
+|---|---|
+| 0.28 | **0.36** |
+
+The coupling is **higher away from the mode than at it**, and the ratio climbs past 1.0
+around 59–61 Hz exactly where `psd_z` has decayed to ~13 % of peak. That is a noise
+floor — roughly constant Y noise divided by a falling Z signal — not a coupled mode.
+Comparing peak to peak manufactured a correlation that is not in the data.
+
+The low excitation (20 % of Klipper's intended energy, below) is what makes the
+cross-axis channels unusable: the Z peak is far above the noise, the Y channel is not.
+
+### What it does not tell us
+
+It does **not** diagnose the 0.1487 mm Y-dominated mesh saddle. A resonance sweep
+measures *dynamic* behaviour; the saddle is a *static* deflection. Diagnosing that needs
+static measurement — re-mesh after gantry squaring, or a dial indicator on the gantry.
 
 ### Caveats
 
