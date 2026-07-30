@@ -69,14 +69,25 @@ The warm chain requires the previous print to have ended inside the 25 min stand
 `quad_gantry_level.applied` is reset only by motor-off, so `PRINT_END` holding the motors
 is what lets the pre-QGL skip itself — a genuinely cold start still gets both passes.
 
-**Remaining levers, in size order**
+**Remaining levers, in size order — all four implemented** (commit `bf0f9ec`)
 
-- [ ] `[probe] samples: 3 → 2` — mesh is 9 points but 27 probe cycles; ~15 s, no
-      meaningful precision loss (std dev 0.0019 mm, see the analysis in Phase 2)
-- [ ] Skip the 40 mm / 120 mm-per-min ooze-pull in `CLEAN_NOZZLE` when no purge ran —
-      ~20 s of nothing ([ADR-0009](adr/0009-nozzle-clean-pressure-relief.md))
-- [ ] `PRINT_END` has a `G4 P120000` party dwell — 2 min of machine time per print
-- [ ] The duplicate `G28 Z` (CLEAN_NOZZLE ends with one, QGL does another) — ~10 s
+- [x] `[probe] samples: 3 → 2` — mesh is 9 points but 27 probe cycles; ~15 s, no
+      meaningful precision loss (std dev 0.0019 mm) ([ADR-0013](adr/0013-probe-samples-reduced.md))
+- [x] Skip the 40 mm / 120 mm-per-min ooze-pull in `CLEAN_NOZZLE` when no purge ran —
+      measured **48.7 s → 18.0 s** ([ADR-0009](adr/0009-nozzle-clean-pressure-relief.md))
+- [x] `PRINT_END`'s `G4 P120000` party dwell is now a non-blocking `[delayed_gcode]` —
+      `PRINT_END` returns immediately instead of 2 min later
+      ([ADR-0014](adr/0014-nonblocking-print-end-lights.md))
+- [x] The duplicate `G28 Z` (`CLEAN_NOZZLE` ends with one, QGL does another) — `PRINT_START`
+      now passes `Z_HOME=0` ([ADR-0009 revisions](adr/0009-nozzle-clean-pressure-relief.md))
+
+- [x] **[verify]** 2026-07-29, queried live (`ready`, `v0.13.0-708-g7046bd00e`):
+      `configfile.settings.probe.samples == 2`; `delayed_gcode _party_finish` and
+      `delayed_gcode _standby_warm_off` both resolve via `printer/objects/query`
+      (neither delayed_gcode ever appears in `printer/objects/list` — that endpoint
+      excludes objects with no polled status fields, not a sign anything is missing).
+      Still to observe on a real print: `PRINT_END` returning immediately instead of
+      2 min later.
 
 ---
 
@@ -219,14 +230,23 @@ not the clock.
       minutes. Next session then passes the temperature gate immediately.
       ⚠️ `[idle_timeout] timeout: 1800` runs `TURN_OFF_HEATERS` after 30 min idle —
       keep-warm must account for that or it will be silently killed.
-- [ ] **Wash the plate** with dish soap and water, air dry. Ellis: **IPA alone is
-      insufficient** for maintenance cleaning.
+- [x] **Wash the plate** with dish soap and water, air dry — done 2026-07-30. Ellis:
+      **IPA alone is insufficient** for maintenance cleaning.
 - [x] **[verify] `PROBE_ACCURACY`** — Ellis' bar: **std dev ≤ 0.004, range ≤ 0.0125**.
       If this fails, stop — fix probing before tuning anything else.
-- [ ] Disable **z-hop on the first layer** in the slicer.
-- [ ] Consider first-layer line width **120 %**.
-- [ ] Purge line runs at `Y4`, outside `mesh_min: 30,30` → extrapolated mesh.
-      Move it inside the meshed area.
+- [ ] Disable **z-hop on the first layer** in the slicer. Encoded in
+      [slicer_profiles/](../slicer_profiles/) (`retract_lift`/`retraction_hop_enabled`) —
+      pending import + verify, not yet confirmed live in either app.
+- [ ] Consider first-layer line width **120 %**. Same — encoded in
+      [slicer_profiles/](../slicer_profiles/), not yet confirmed live.
+- [x] Purge line runs at `Y4`, outside `mesh_min: 30,30` → extrapolated mesh —
+      **superseded by a bigger fix**: most of the purge now goes into the trash bin
+      (rear-right, by the brush) instead of onto the bed at all; only a short 20 mm
+      prime line remains, inside the mesh (`X{mesh_max_x-10→-30}, Y{mesh_min_y+5}`).
+      [ADR-0015](adr/0015-purge-into-bucket-not-bed.md). Bucket-purge mechanics
+      verified live 2026-07-30; the short-prime addition not yet run through a real
+      `PRINT_START`. **Purge quantity (10mm bin / 4mm prime) is a first guess —
+      revisit after pressure-advance calibration.**
 
 ### Tier A — chosen values (derived from measured machine data)
 
@@ -391,20 +411,62 @@ Cheap checks still worth doing (both are common causes and take minutes):
 
 Do **not** start until Phase 1/2 give a consistent first layer.
 
-**Read [SLICER_INTEGRATION.md](SLICER_INTEGRATION.md) first** — the slicer currently
-emits almost nothing (no `M204`, no `G10`/`G11`, no `M900`), so several of these
-steps cannot be tuned without either a shim or a different slicer.
-[ADR-0012](adr/0012-slicer-integration-for-tuning.md).
+**Read [SLICER_INTEGRATION.md](SLICER_INTEGRATION.md) first** — that gap analysis was
+written against **Cura**, which emitted almost nothing (no `M204`, no `G10`/`G11`, no
+`M900`). **Resolved as of 2026-07-30 for OrcaSlicer**: a real slice now emits firmware
+retraction, object exclusion, layer progress and native `SET_VELOCITY_LIMIT`, verified
+by `scripts/verify_slicer_gcode.py`. [ADR-0012](adr/0012-slicer-integration-for-tuning.md).
 
-- [ ] **Re-run `SHAPER_CALIBRATE` first** — current values (`mzv`, x=47.6, y=33) were
-      measured at the old off-centre `probe_points`, and shaping changes how
-      everything else prints
+- [x] **Re-run `SHAPER_CALIBRATE` first** — done 2026-07-26 at the corrected 175,175
+      point: **x `2hump_ei` @ 78.6 Hz, y `mzv` @ 35.8 Hz** (was `mzv` x=47.6, y=33,
+      measured off-centre with the wrong ADXL axes_map — see
+      [gantry/input_shaping.cfg](../config/printer/gantry/input_shaping.cfg))
 - [x] Tuning slicer decided: **OrcaSlicer** for tuning, Cura may stay for production
-- [ ] Apply [SLICER_SETUP.md](SLICER_SETUP.md) and **verify the emitted gcode** against
-      its checklist before trusting any tuning result
-- [ ] Extruder calibration (rotation_distance)
+- [x] Apply [SLICER_SETUP.md](SLICER_SETUP.md) and **verify the emitted gcode** —
+      done 2026-07-30. OrcaSlicer profile imported from
+      [`slicer_profiles/orcaslicer/`](../slicer_profiles/orcaslicer/) (built by
+      correcting a real export, not hand-authored — the `.ini` attempt failed to
+      import). First real slice passes `scripts/verify_slicer_gcode.py`:
+      `G10`/`G11` 333/332, `EXCLUDE_OBJECT_DEFINE` present with 117 START/END pairs,
+      `M73` 110, `PRINT_START EXTRUDER=260 BED=105` with resolved numbers, and
+      **nothing heating before `PRINT_START`** — the trap §6 warns about.
+
+      Two things the verification itself turned up
+      ([ADR-0012 revisions](adr/0012-slicer-integration-for-tuning.md)):
+      - Orca emits **`SET_VELOCITY_LIMIT`** (1423x), never `M204`, because
+        `gcode_flavor: klipper`. The checker required `M204` and wrongly failed a
+        good file — checker fixed, §7 row corrected.
+      - **`ACCEL_TO_DECEL` is emitted but was removed in Klipper v0.12+** — tested
+        live, **harmless**: Klipper ignores the unknown parameter, `minimum_cruise_ratio`
+        unchanged, no error. The same test confirmed a slicer *can* raise this
+        printer's limits (`square_corner_velocity` 8.0 → 12.0 and it stuck), so the
+        profile's `machine_max_*` values are real safety limits, not estimate hints.
+- [x] Extruder calibration (rotation_distance) — 2026-07-30, Ellis' method (120mm mark,
+      100mm push, hot/no-disassembly). `22.780000 → 22.460000`
+      ([stealburner/stepper.cfg](../config/printer/stealburner/stepper.cfg)). Two
+      passes: first 1.4% off, confirmation pass with the new value **0.5% off**
+      (99.5mm actual/100mm requested) — consistent, within mark/caliper noise.
+      Synced, restarted, confirmed live via `configfile.settings`.
 - [ ] Build surface preparation
-- [ ] First layer squish
+- [x] **First layer squish — done 2026-07-30**, smooth/plastic side, post-QGL.
+      Two passes:
+      1. Paper test (Klipper's official method,
+         [Bed_Level.html](https://www.klipper3d.org/Bed_Level.html), no
+         paper-thickness subtraction) → rough starting point, `-0.514 → -0.529`.
+      2. [`SQUISH_TEST_GRID`](../config/printer/macros/squish_test.cfg)
+         ([ADR-0016](adr/0016-squish-test-grid-not-live-babystep.md)) — static 3x3
+         grid instead of Ellis' live-babystep method, 9 squares at 0.04mm steps
+         around the paper-test baseline. Back-left square (delta +0.08) judged
+         best: fully fused lines, no gaps, resists a peel test.
+         `-0.529 → -0.449`.
+
+      Final: `[probe] z_offset: -0.514 → -0.449` in
+      [gantry/kinematics.cfg](../config/printer/gantry/kinematics.cfg). Synced,
+      restarted, confirmed live.
+
+      **Still open:** plate-side A/B test (smooth vs. textured) now that squish is
+      dialed in — see the "plate side" discussion earlier in this doc, not yet
+      logged since it wasn't a settled result at the time.
 - [ ] Pressure advance — pattern method
 - [ ] Extrusion multiplier
 - [ ] Cooling and layer times

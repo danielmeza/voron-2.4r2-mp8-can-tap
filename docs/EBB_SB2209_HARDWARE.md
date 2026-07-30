@@ -91,3 +91,74 @@ ground; the `^` pull-up in the config provides the high level). Most fans are.
 A push-pull tach output at fan voltage will **destroy GPIO12**. Check the fan datasheet,
 or spin the fan on bench power and measure tach-to-ground — it should read near 0 V, not
 12 V or 24 V.
+
+---
+
+## Incident 2026-07-30 — EBB dropped off the bus while idle
+
+**Root cause not established.** Recording the evidence so a recurrence can be compared
+against it rather than re-diagnosed from scratch.
+
+```
+Timeout with MCU 'EBB' (eventtime=66984.778546)
+Transition to shutdown state: Lost communication with MCU 'EBB'
+```
+
+State at the time, from `klippy.log` stats:
+
+| Signal | Value | Reading |
+|---|---|---|
+| `canstat_EBB` | `bus_state=unknown  tx_retries=2334` | host retransmitting, nothing coming back |
+| EBB `send_seq` / `receive_seq` | frozen at 2792 | node stopped responding |
+| `canstat_MP8` | `bus_state=active  tx_retries=0` | bridge unaffected |
+| EBB temp | 56.7 °C (frozen at last reading) | not thermal runaway |
+| `print_time` | frozen at 65756 | **~1200 s of idle before the drop** |
+| bed / extruder | target 0, cooling | nothing was moving or heating |
+
+`ip -details link show can0` immediately after, **all zero**:
+
+```
+can state ERROR-ACTIVE  restart-ms 0
+re-started bus-errors arbit-lost error-warn error-pass bus-off
+0          0          0          0          0          0
+RX/TX errors 0  dropped 0
+```
+
+**What this rules out.** A broken/marginal CAN wire, bad termination, or bus contention
+would show up as `bus-errors`, `error-warn`, `error-pass` or `bus-off` counts. All were
+zero, and the link stayed `ERROR-ACTIVE`. The bus was electrically healthy; the EBB node
+simply stopped answering on it. That also distinguishes this from the earlier
+bandwidth-related shutdown during resonance testing
+([ADR-0012](adr/0012-slicer-integration-for-tuning.md) revisions), which was a
+`Timer too close` on **MP8** under ADXL streaming load — a different board and a
+different mechanism.
+
+**What it does not tell us.** Whether the RP2040 hung, browned out, or reset. Nothing
+was moving, so cable flex during motion is *not* the obvious explanation it would be
+during a print.
+
+**If it recurs, capture before restarting** — a power cycle destroys the evidence:
+
+```bash
+ip -details -statistics link show can0        # bus counters: still all zero?
+sudo dmesg | grep -iE 'can0|gs_usb|bus-off'   # USB/CAN adapter level events
+grep -n 'Timeout with MCU' ~/printer_data/logs/klippy.log
+~/klippy-env/bin/python ~/klipper/scripts/canbus_query.py can0   # needs klipper stopped
+```
+
+Then check whether the EBB reappears on `FIRMWARE_RESTART` alone (node recovered) or
+needs a power cycle (board was hung/dead).
+
+**Outcome this time:** recovered after a host restart/power cycle — all three MCUs came
+back at `v0.13.0-708-g7046bd00e` and `QUERY_PROBE` returned `probe: open`. So the board
+was **hung, not damaged**. A `FIRMWARE_RESTART` alone was attempted first but the host
+went down before it could be confirmed, so which of the two was sufficient is unknown —
+try `FIRMWARE_RESTART` first next time, it is the cheaper test and distinguishes the two
+cases.
+
+**Not yet recurring.** One event. If it happens again, that changes it from an anomaly
+to a pattern worth chasing (marginal toolhead CAN connector, 24 V supply sag, or an
+RP2040 firmware hang are the candidates, in that order of likelihood on a Voron).
+
+⚠️ **TAP is on this board and is the only Z endstop.** After any EBB recovery,
+`QUERY_PROBE` before any `G28 Z` — see `CLAUDE.md` Rule 5.

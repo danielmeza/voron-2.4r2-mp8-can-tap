@@ -149,3 +149,66 @@ Firmware retraction itself is sound.
 
 Concrete profile, with every value read from the live machine, is in
 [`docs/SLICER_SETUP.md`](../SLICER_SETUP.md).
+
+### 2026-07-30 — OrcaSlicer emits `SET_VELOCITY_LIMIT`, and Klipper does **not** clamp it
+
+Two findings from verifying the first real OrcaSlicer slice
+(`meter_stepper_adapter-Adapter_ABS_9m16s.gcode`, 29523 lines) against
+[SLICER_SETUP.md](../SLICER_SETUP.md) §7.
+
+**1. With `gcode_flavor: klipper`, there is no `M204` at all.** The slice contained
+**1423 `SET_VELOCITY_LIMIT`** and **zero `M204`** — Orca uses Klipper's native command
+instead of the Marlin one. `scripts/verify_slicer_gcode.py` required `M204` and
+therefore failed a perfectly good file; the checker was wrong, not the gcode. It now
+accepts either form, and the §7 checklist row was corrected.
+
+Distinct values emitted, all inside the configured ceiling because Orca clamps to
+`machine_max_acceleration_*` before writing:
+
+```
+404x  ACCEL=5700 ACCEL_TO_DECEL=2850 SQUARE_CORNER_VELOCITY=12
+356x  ACCEL=5000 ACCEL_TO_DECEL=2500 SQUARE_CORNER_VELOCITY=7
+178x  ACCEL=3000 ACCEL_TO_DECEL=1500
+ 10x  ACCEL=500  ACCEL_TO_DECEL=250  SQUARE_CORNER_VELOCITY=9
+```
+
+**2. The "machine limits belong in the Klipper config" assumption above is weaker than
+it reads.** That revision argued M201/M203 should not map to `SET_VELOCITY_LIMIT`
+because a slicer should not override machine limits. But `M204` and `SET_VELOCITY_LIMIT`
+— both of which the slicer *does* emit — already can. Verified in the pinned source,
+`klippy/toolhead.py:538`:
+
+```python
+def set_max_velocities(self, max_velocity, max_accel,
+                       square_corner_velocity, min_cruise_ratio):
+    ...
+    if max_accel is not None:
+        self.max_accel = max_accel          # no min() against the config value
+```
+
+`cmd_M204` calls this directly. There is **no clamp to `[printer] max_accel`** — a
+slicer emitting a higher value genuinely raises the machine's limit for the rest of the
+print. Note the emitted `SQUARE_CORNER_VELOCITY=12` above is already above this
+printer's configured `8.0`, and takes effect.
+
+The protection today is **OrcaSlicer's own clamping**, not Klipper's. So the printer
+profile's `machine_max_acceleration_*` fields are load-bearing safety values, not just
+time-estimate hints — which is why they were corrected to this machine's real
+5700/350 rather than left at Orca's generic Voron defaults of 20000/500.
+
+**3. `ACCEL_TO_DECEL` is emitted but was removed in Klipper v0.12+** (replaced by
+`MINIMUM_CRUISE_RATIO` — see the note in `macros/slicer_compat.cfg`'s `TEST_SPEED`).
+**Resolved — harmless.** Tested live with the exact emitted string:
+
+```
+SET_VELOCITY_LIMIT ACCEL=5700 ACCEL_TO_DECEL=2850 SQUARE_CORNER_VELOCITY=12
+  -> {"result":"ok"}, no error
+```
+
+Klipper silently ignores the unknown parameter; `minimum_cruise_ratio` stayed at its
+configured `0.5`. No shim needed, and no abort risk across the 1423 lines that carry it.
+
+The same test **empirically confirmed the non-clamping** in point 2 — it is not just a
+source reading. `square_corner_velocity` went to **12.0** against a configured `8.0`,
+and stayed there until explicitly restored. A slicer can and does raise this printer's
+motion limits mid-print; only OrcaSlicer's own clamping keeps acceleration in bounds.

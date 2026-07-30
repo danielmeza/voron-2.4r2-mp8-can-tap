@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "name": "Voron 2.4r2 350 CAN",
+  "inherits": "fdmprinter",
+  "metadata": {
+    "visible": true,
+    "author": "voron-2.4r2-mp8-can-tap repo",
+    "manufacturer": "Voron Design",
+    "file_formats": "text/x-gcode",
+    "platform_texture": ""
+  },
+  "overrides": {
+    "machine_name": { "default_value": "Voron 2.4r2 350 CAN" },
+    "machine_width": { "default_value": 350 },
+    "machine_depth": { "default_value": 350 },
+    "machine_height": { "default_value": 300 },
+    "machine_shape": { "default_value": "rectangular" },
+    "machine_center_is_zero": { "default_value": false },
+    "machine_extruder_count": { "default_value": 1 },
+    "machine_nozzle_size": { "default_value": 0.4 },
+    "material_diameter": { "default_value": 1.75 },
+    "machine_gcode_flavor": { "default_value": "Marlin" },
+    "machine_max_feedrate_x": { "default_value": 400 },
+    "machine_max_feedrate_y": { "default_value": 400 },
+    "machine_max_feedrate_z": { "default_value": 20 },
+    "machine_max_acceleration_x": { "default_value": 5700 },
+    "machine_max_acceleration_y": { "default_value": 5700 },
+    "machine_max_acceleration_z": { "default_value": 350 },
+    "machine_acceleration": { "default_value": 5700 },
+    "machine_firmware_retraction": { "default_value": true },
+    "retraction_enable": { "default_value": true },
+    "retraction_amount": { "default_value": 0.75 },
+    "retraction_speed": { "default_value": 35 },
+    "retraction_retract_speed": { "default_value": 35 },
+    "retraction_prime_speed": { "default_value": 35 },
+    "retraction_extra_prime_amount": { "default_value": 0.05 },
+    "retraction_hop_enabled": { "default_value": false },
+    "initial_layer_line_width_factor": { "default_value": 120 },
+    "machine_start_gcode": {
+      "default_value": "PRINT_START EXTRUDER={material_print_temperature_layer_0} BED={material_bed_temperature_layer_0}"
+    },
+    "machine_end_gcode": { "default_value": "PRINT_END" }
+  }
+}

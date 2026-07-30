@@ -75,6 +75,7 @@ across files; the merge is silent and the winner is decided by filename sort ord
 | `docs/BELT_TENSION.md` | belt tension, both measurement methods |
 | `firmware/` | per-board Klipper `.config` files (the machine keeps only the last one) |
 | `scripts/` | config linter, MCU firmware updater |
+| `slicer_profiles/` | Cura import profile + OrcaSlicer manual-entry table, from `docs/SLICER_SETUP.md` |
 
 ## Machine facts worth knowing
 

@@ -94,15 +94,28 @@ Two traps:
 
 ## 7. Verification — do this before trusting anything
 
-Slice any small object and check the output. This is objective and takes a minute:
+Slice any small object and check the output.
+
+```bash
+python3 scripts/verify_slicer_gcode.py path/to/sliced.gcode
+```
+
+Checks the placeholder/ordering/presence rows below automatically. The two
+console-only rows at the end (`Found N objects`, `Adapted probe count`) still need a
+real print to observe.
 
 | Must be present | Why |
 |---|---|
 | `PRINT_START ... EXTRUDER=<n> BED=<n>` with **real numbers** | placeholders resolved |
 | `G10` / `G11` | firmware retraction live |
 | `EXCLUDE_OBJECT_DEFINE` | adaptive meshing works |
-| `M204` | per-feature acceleration |
+| `M204` **or** `SET_VELOCITY_LIMIT ACCEL=` | per-feature acceleration |
 | `SET_PRINT_STATS_INFO` or `M73` | layer progress in the UI |
+
+**On the acceleration row:** with `gcode_flavor: klipper` OrcaSlicer emits Klipper's
+native `SET_VELOCITY_LIMIT ACCEL=... SQUARE_CORNER_VELOCITY=...` instead of `M204` —
+that is the *better* output, not a missing feature. Verified 2026-07-30 on a real
+slice: 1423 `SET_VELOCITY_LIMIT` and zero `M204`.
 
 | Should be absent | Why |
 |---|---|

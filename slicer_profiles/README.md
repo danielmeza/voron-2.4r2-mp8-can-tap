@@ -1,0 +1,65 @@
+# Slicer profiles
+
+Built from [docs/SLICER_SETUP.md](../docs/SLICER_SETUP.md) (values read live from
+the machine) plus the two still-open Tier A settings in
+[docs/TUNING_PLAN.md](../docs/TUNING_PLAN.md) — first-layer line width 120%, z-hop
+disabled.
+
+Once configured (either slicer), run:
+
+```bash
+python3 scripts/verify_slicer_gcode.py path/to/sliced.gcode
+```
+
+against a real test slice before trusting a print from either.
+
+## OrcaSlicer — `orcaslicer/voron_2.4r2_350_can.orca_printer`
+
+**File > Import > Import Configs**, select this file.
+
+First attempt at this (a hand-authored PrusaSlicer-style `.ini`) failed —
+OrcaSlicer's import only accepts its own native bundle types (`.orca_printer`,
+`.orca_filaments`, `.zip`), and the exact internal schema isn't public/stable enough
+to hand-author blind. Fixed 2026-07-30 by starting from a **real export** of the
+user's own OrcaSlicer printer preset (already inheriting Orca's built-in Voron 2.4
+350 system profile) and correcting only the fields that were wrong against this
+specific machine's measured data:
+
+| Field | Was (Orca's generic Voron default) | Now | Source |
+|---|---|---|---|
+| `printable_height` | 325 | 300 | `kinematics.cfg` `position_max` |
+| `machine_max_speed_x/y` | 500/200 | 400/400 | `SLICER_SETUP.md` §1 |
+| `machine_max_speed_z` | 12/12 | 20/20 | same |
+| `machine_max_acceleration_x/y/z` (+ extruding/retracting/travel) | 20000/5000/500 mix | 5700/5700/350 | same |
+| `use_firmware_retraction` | 0 | 1 | §4 — "the setting that actually opens the gate" |
+| `retraction_length` | 0.8 | 0.75 | live `firmware_retraction.cfg` |
+| `retraction_speed` / `deretraction_speed` | 30/30 | 35/35 | same |
+| `retract_restart_extra` | 0 | 0.05 | `unretract_extra_length` |
+| `z_hop` | 0.4 | 0 | Tier A, disable z-hop |
+| `emit_machine_limits_to_gcode` | 1 | 0 | §1 — "silence is better than a shim firing every job" |
+| `machine_start_gcode` | `M190`/`M109` **before** `PRINT_START` | just `PRINT_START EXTRUDER=... BED=... CHAMBER=...` | §6 — the exact trap the doc warns about |
+
+The original export is kept at `orcaslicer/samples/` for reference/diffing.
+
+**Not covered — this only exports the printer preset, not print/process settings.**
+Still need to set by hand in **Print Settings**: "Label objects" on (Others tab),
+first-layer line width **120%** (First layer tab). Two fields, not the whole table
+this used to be.
+
+## Cura — `cura/voron_2.4r2_350_can.def.json`
+
+Custom printer definition. Drop into Cura's `definitions/` folder (Help > Show
+Configuration Folder), restart Cura, then Settings > Printer > Add Printer > Custom.
+`gcode_flavor: Marlin` — matches this repo's existing production Cura output
+(`SLICER_INTEGRATION.md` confirms the live file already emits `FLAVOR:Marlin`), not a
+guess. **Additive, not destructive**: adding this file creates a new selectable
+printer, it does not alter your already-configured production printer instance unless
+you explicitly switch its printer type to this one.
+
+Object exclusion is deliberately **not** set here — per
+[ADR-0006](../docs/adr/0006-adaptive-bed-mesh.md), Cura doesn't need a slicer-side
+toggle for it; Moonraker's `preprocess_cancellation` injects `EXCLUDE_OBJECT_DEFINE`
+on upload.
+
+`CHAMBER=` is omitted from the Cura start gcode (no standard Cura placeholder for it
+without enclosure support) — `PRINT_START` defaults it to 40 °C when absent.
