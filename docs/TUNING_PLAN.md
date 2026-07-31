@@ -489,7 +489,32 @@ by `scripts/verify_slicer_gcode.py`. [ADR-0012](adr/0012-slicer-integration-for-
       Print also confirmed adaptive meshing works from OrcaSlicer: *Found 1 objects*,
       `Adapted probe count: (11,11)` — full grid here only because the pattern spans
       X117–258, which is correct behaviour for a large object.
-- [ ] Extrusion multiplier
+- [x] **Extrusion multiplier / flow ratio — done 2026-07-31.** ABS, OrcaSlicer
+      Calibration > Flow Rate. **Slicer-side only** — Klipper has no extrusion
+      multiplier (`M221` is a runtime override), so this lives in the filament
+      profile and there is no config commit for it.
+      **`filament_flow_ratio: 0.926 → 0.9334`** (~101 % of the original).
+
+      Took three runs, and the detour is the useful part of the record:
+
+      | Run | Base | Result |
+      |---|---|---|
+      | Pass 1 | 0.926 | picked **+10** → 1.019 |
+      | Pass 2 | 1.019 | **every block over-extruded**, even −9 — base was too high |
+      | Pass 2 (redo) | **0.9723** (= +5 from Pass 1) | −7/−6 gaps, −5 clean, chose **−4** for margin |
+
+      Two things caused the first detour, both worth remembering:
+      - **Pass 2 only spans `−9 … 0`, not ±9** — confirmed in
+        [OrcaSlicer's wiki](https://github.com/OrcaSlicer/OrcaSlicer/wiki/flow_ratio_calib):
+        *"ten blocks … modifiers … will range from -9 to 0."* So the Pass 1 pick must
+        sit **above** the true answer or Pass 2 cannot reach it. Picking +10 put the
+        base above the answer's reach in the wrong direction and wasted a 33 min print.
+      - **Over-extrusion does not produce gaps either.** Judging Pass 1 by "can I see
+        between the lines?" passes an over-extruded surface and picks too high. The
+        over signal is ridging/roughness/proud lines, not gaps.
+
+      Formula both passes: `New = Old × (100 + modifier) / 100`.
+      Pass 1 = 9 blocks, −20…+20 step 5. Pass 2 = 10 blocks, −9…0 step 1.
 - [ ] Cooling and layer times
 - [ ] Retraction
 - [ ] Infill/perimeter overlap

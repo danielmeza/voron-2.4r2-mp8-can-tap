@@ -63,6 +63,21 @@ Still need to set by hand in **Print Settings**: "Label objects" on (Others tab)
 first-layer line width **120%** (First layer tab). Two fields, not the whole table
 this used to be.
 
+### Filament-profile values (not in the printer bundle)
+
+The `.orca_printer` above carries **printer** settings only. These are per-filament and
+must be set by hand in Filament Settings — they are calibration results, so they are
+recorded here rather than left to memory:
+
+| Setting | ABS | Source |
+|---|---|---|
+| Flow ratio | **0.9334** | Flow Rate calibration 2026-07-31, [TUNING_PLAN](../docs/TUNING_PLAN.md) |
+| Pressure advance | **leave unchecked** | Klipper's `0.022` applies already; ticking it here silently *overrides* the calibrated value |
+
+Also still set by hand in **Print Settings**: "Label objects" on (Others), first-layer
+line width **120 %** (Quality > Line width). Top surface line width must stay at
+**0.4 mm = 100 % of nozzle** — Ellis requires that for the flow test to be valid.
+
 ## Cura — `cura/voron_2.4r2_350_can.def.json`
 
 Custom printer definition. Drop into Cura's `definitions/` folder (Help > Show
