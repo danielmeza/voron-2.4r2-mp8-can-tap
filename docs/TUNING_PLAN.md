@@ -234,9 +234,17 @@ not the clock.
       **IPA alone is insufficient** for maintenance cleaning.
 - [x] **[verify] `PROBE_ACCURACY`** — Ellis' bar: **std dev ≤ 0.004, range ≤ 0.0125**.
       If this fails, stop — fix probing before tuning anything else.
-- [ ] Disable **z-hop on the first layer** in the slicer. Encoded in
-      [slicer_profiles/](../slicer_profiles/) (`retract_lift`/`retraction_hop_enabled`) —
-      pending import + verify, not yet confirmed live in either app.
+- [x] Disable **z-hop on the first layer** in the slicer — done, but **first got it
+      wrong**: the OrcaSlicer profile initially set `z_hop: 0` **globally**, not just
+      on layer one. Result, observed on the PA pattern print 2026-07-30: with no lift
+      on any layer the nozzle **dragged across already-printed material** on every Y
+      travel between blocks. Squish and adhesion were fine, which is what isolated it
+      to travel rather than Z offset.
+      Corrected to `z_hop: 0.2` with `retract_lift_above: 0.3`, so lift happens
+      normally but is skipped below 0.3 mm — the first layer — which is what this item
+      actually asked for. **Note:** re-importing does not update an already-imported
+      preset; the same two fields must be changed in Printer Settings > Extruder >
+      Z-Hop.
 - [ ] Consider first-layer line width **120 %**. Same — encoded in
       [slicer_profiles/](../slicer_profiles/), not yet confirmed live.
 - [x] Purge line runs at `Y4`, outside `mesh_min: 30,30` → extrapolated mesh —
@@ -467,7 +475,20 @@ by `scripts/verify_slicer_gcode.py`. [ADR-0012](adr/0012-slicer-integration-for-
       **Still open:** plate-side A/B test (smooth vs. textured) now that squish is
       dialed in — see the "plate side" discussion earlier in this doc, not yet
       logged since it wasn't a settled result at the time.
-- [ ] Pressure advance — pattern method
+- [x] **Pressure advance — pattern method, done 2026-07-30.** OrcaSlicer
+      Calibration > Pressure Advance > **PA Pattern** (Ellis' preferred method), ABS,
+      41 blocks `0 → 0.08` in 0.002 steps at 120 mm/s / 3000 mm/s². Block 11 from the
+      left judged best — corners uniform, no bulge, no gap.
+      `pressure_advance: 0.055 → 0.022` in
+      [stealburner/extruder.cfg](../config/printer/stealburner/extruder.cfg).
+      Synced, restarted, confirmed live. The old 0.055 was inherited and never
+      measured — the real value is **less than half** of it.
+      **PA is filament-specific**; 0.022 is the ABS number and stands as the machine
+      default. Set per-filament in the slicer to override.
+
+      Print also confirmed adaptive meshing works from OrcaSlicer: *Found 1 objects*,
+      `Adapted probe count: (11,11)` — full grid here only because the pattern spans
+      X117–258, which is correct behaviour for a large object.
 - [ ] Extrusion multiplier
 - [ ] Cooling and layer times
 - [ ] Retraction

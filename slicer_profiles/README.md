@@ -35,11 +35,28 @@ specific machine's measured data:
 | `retraction_length` | 0.8 | 0.75 | live `firmware_retraction.cfg` |
 | `retraction_speed` / `deretraction_speed` | 30/30 | 35/35 | same |
 | `retract_restart_extra` | 0 | 0.05 | `unretract_extra_length` |
-| `z_hop` | 0.4 | 0 | Tier A, disable z-hop |
+| `z_hop` | 0.4 | **0.2** | see the correction below |
+| `retract_lift_above` | 0 | **0.3** | suppresses lift on the first layer only |
 | `emit_machine_limits_to_gcode` | 1 | 0 | §1 — "silence is better than a shim firing every job" |
 | `machine_start_gcode` | `M190`/`M109` **before** `PRINT_START` | just `PRINT_START EXTRUDER=... BED=... CHAMBER=...` | §6 — the exact trap the doc warns about |
 
 The original export is kept at `orcaslicer/samples/` for reference/diffing.
+
+### Correction 2026-07-30 — z-hop was disabled too broadly
+
+The first version of this profile set `z_hop: 0` **globally**, reading TUNING_PLAN's
+*"disable z-hop on the first layer"* as if it meant everywhere. On the PA pattern print
+the nozzle then **dragged across already-printed blocks** on every Y travel, because
+without lift a travel move runs at exactly the current layer height. First-layer squish
+and adhesion were good, which is what identified it as a travel problem rather than a Z
+offset one.
+
+Correct form: `z_hop: 0.2` for normal lift, plus `retract_lift_above: 0.3` so the lift
+is skipped below 0.3 mm — i.e. on the first layer, and only there.
+
+⚠️ **Re-importing this file does not update a preset you already imported.** Change the
+two fields by hand in **Printer Settings > Extruder > Z-Hop** (`Z hop height` and
+`Only lift Z above`), or delete the existing preset before re-importing.
 
 **Not covered — this only exports the printer preset, not print/process settings.**
 Still need to set by hand in **Print Settings**: "Label objects" on (Others tab),
