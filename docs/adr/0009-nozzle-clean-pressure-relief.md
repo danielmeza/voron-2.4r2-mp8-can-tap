@@ -90,3 +90,14 @@ sitting at Z10.2 instead of Z45.2 during the wipe. Part of that gain is a compan
 change — `PRINT_START` now passes `Z_HOME=0`, because `QUAD_GANTRY_LEVEL` runs
 immediately afterwards and ends with its own `G28 Z`, making the macro's trailing home a
 duplicate TAP probe cycle.
+
+### 2026-07-31 — bare calls now purge by default; PRINT_START's early call pins PURGE=0
+
+`params.PURGE` previously defaulted to `"0"`, so the purge half of this macro was dead in
+every normal invocation (a bare UI click, and `PRINT_START`'s early call). A bare call
+now defaults `PURGE` to `purge_temp_default` (230 °C), so a standalone clean heats to a
+purge temperature, purges, then wipes. `PRINT_START` passes `PURGE=0` explicitly on its
+early pre-QGL call, so the rejection this ADR documents — not dragging the thermal ladder
+to print temperature before leveling — still holds. The pressure-relief retract on the
+no-purge path is unchanged. See also ADR-0015's revision for the print-start purge
+position fix.

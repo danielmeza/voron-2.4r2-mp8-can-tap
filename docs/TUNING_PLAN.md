@@ -466,11 +466,26 @@ by `scripts/verify_slicer_gcode.py`. [ADR-0012](adr/0012-slicer-integration-for-
          grid instead of Ellis' live-babystep method, 9 squares at 0.04mm steps
          around the paper-test baseline. Back-left square (delta +0.08) judged
          best: fully fused lines, no gaps, resists a peel test.
-         `-0.529 → -0.449`.
+         `-0.529 → -0.609`.
 
-      Final: `[probe] z_offset: -0.514 → -0.449` in
-      [gantry/kinematics.cfg](../config/printer/gantry/kinematics.cfg). Synced,
-      restarted, confirmed live.
+      Final: `[probe] z_offset: -0.514 → -0.609` in
+      [gantry/kinematics.cfg](../config/printer/gantry/kinematics.cfg).
+
+      **2026-08-02 correction:** the first pass at this step (`-0.529 + 0.08 =
+      -0.449`) applied the +0.08 with the **wrong sign** — see the
+      [ADR-0016 revision](adr/0016-squish-test-grid-not-live-babystep.md). Klipper's
+      `Z_OFFSET_APPLY_PROBE` (`new = z_offset - offset`) and `SET_GCODE_OFFSET`
+      (adds to `base_position`) both show the correct value is `-0.529 - 0.08 =
+      -0.609`. The intermediate `-0.449` ran from 2026-07-30 to 2026-08-02, crushing
+      first layers and shorting prints by ~0.3–0.5mm. Change to `-0.609` is on disk,
+      pending sync + RESTART (machine was mid-print when applied).
+
+      **2026-08-02 confirmation (2 grids):** re-ran `SQUISH_TEST_GRID` with 25mm
+      bordered squares. A −0.04mm more-squish candidate (`-0.569`) over-squished
+      every square (raised line borders), so it was reverted. A final grid at
+      `Z_STEP=0.002` (center ±0.008mm) confirmed the **center square (delta 0) is
+      best** — `-0.609` stands, no change. Join gaps at correct squish are a
+      flow/PA artifact, not a Z issue (see ADR-0016 revisions).
 
       **Still open:** plate-side A/B test (smooth vs. textured) now that squish is
       dialed in — see the "plate side" discussion earlier in this doc, not yet
