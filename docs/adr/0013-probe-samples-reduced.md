@@ -38,3 +38,16 @@ already 2× inside spec — the wrong trade on a machine tuned for 5–10 min pa
   silently corrupt the mesh.
 - If `PROBE_ACCURACY` is ever re-measured and comes back worse than **0.004 mm** std
   dev (Ellis' ceiling), revisit this first — it is the cheapest lever to reverse.
+
+## Revisions
+
+### 2026-09-19 — the 0.0019 mm figure was measured warm; cold-start drift is a different failure
+
+The `PROBE_ACCURACY` std dev above was taken on a warm, settled machine. On 2026-08-03 a
+cold-start QGL saw the same point drift **0.23 mm** across retries while the hotend
+climbed to 150 °C, which no `samples` value can absorb; `samples_tolerance_retries: 3`
+ran out and the print was cancelled. That is addressed by waiting for probe temperature
+before the first QGL ([ADR-0019](0019-cold-start-qgl-waits-for-probe-temp.md)), not by
+changing this decision. The 2-sample choice stands; the open measurement is
+`PROBE_ACCURACY` at 150 °C over a 100 °C bed, which is also what ADR-0019 needs before
+`retry_tolerance` can be reconsidered.

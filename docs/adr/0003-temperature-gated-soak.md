@@ -94,3 +94,33 @@ Once [ADR-0005](0005-between-session-keep-warm.md) made `M190` return in ~2 s, t
 preheat placed just before it had no runway. **Evidence:** hotend still at 52 °C when
 `CLEAN_NOZZLE` ran, whose `M109` then blocked ~46 s. `M104 S150` now issues at the very
 top so it heats during homing (~41 s) and the pre-QGL (~94 s), which are dead time.
+
+### 2026-09-19 — bed heat issued at the top; M190 no longer waits for a cool-down
+
+Two changes to the heating order, both from the `klippy.log` of the 09-19 prints.
+
+1. **`M140 S{BED}` now issues at the top of `PRINT_START`, next to `M104 S150`.**
+   Measured on a true cold start ("HMI Main Body", bed 28 °C): the bed took **330 s** to
+   reach 100 °C and none of it overlapped homing or the pre-QGL, because the only bed
+   command was the blocking `M190` after them. On a warm start (standby holding) the
+   early `M140` is a no-op. Expected saving on a cold start: the homing (~41 s) and
+   pre-QGL (~94 s) measured in the 07-24 revision, plus the new nozzle wait of
+   [ADR-0019](0019-cold-start-qgl-waits-for-probe-temp.md).
+
+2. **The `M190` override in `heatsoak.cfg` waits with `MINIMUM` only.** It used to be
+   `TEMPERATURE_WAIT MINIMUM={s} MAXIMUM={s+1}`, the same "within 1 °C" window stock
+   Klipper uses, which blocks until the bed *cools* to the target as well. The PLA job
+   "HMI Enclosure" started with the bed at 78 °C from the previous ABS attempt and a
+   55 °C target: `M190 S55` would have sat through the whole passive cool-down, and this
+   is exactly the uncancellable-wait shape item 3 of the 07-24 revision describes. `M109`
+   keeps its window on purpose: `CLEAN_NOZZLE`'s `M109 S150` relies on waiting for the
+   nozzle to cool before TAP touches the bed.
+
+Also recorded here because it was never written down: **the hotend is heated to print
+temperature at the bed centre on purpose.** The user's stated reason (2026-09-19) is that
+heat radiating from the centre spreads through the chamber faster and warms the frame at
+the same time. It is a stated intent, not a measurement; the 07-24 revision's
+observation that the chamber reached 44.9 °C within a minute of the hotend reaching
+temperature is the closest evidence. A proposal to heat over the purge bucket instead
+(so the ooze lands in the bin) was withdrawn for this reason. If someone measures it and
+the centre makes no difference, that is the place to revisit.

@@ -530,6 +530,33 @@ by `scripts/verify_slicer_gcode.py`. [ADR-0012](adr/0012-slicer-integration-for-
 
       Formula both passes: `New = Old × (100 + modifier) / 100`.
       Pass 1 = 9 blocks, −20…+20 step 5. Pass 2 = 10 blocks, −9…0 step 1.
+- [ ] **Ellis EM cross-check — pending.** The Orca block method above converged to
+      0.9334, but it is the same top-surface logic repeated. Ellis' own method is
+      a separate-cube EM test, not the single-wall caliper cube that used to be in
+      his guide (removed as unreliable — a 2-wall cube's width ≠ 2 × single-wall
+      width due to wall overlap). Cross-check with cubes around the existing value:
+      - Model: `slicer_profiles/orcaslicer/test_models/ellis_flow_cube_30x30x3.stl`
+        (30 × 30 × 3 mm, versioned in-repo).
+      - **5 cubes in a row, EM 0.92 → 0.96 step 0.01** (brackets 0.9334 on both
+        sides; Ellis says 1–2 % steps).
+      - Ellis-mandated settings: Top Layer Line Width **100 %** (0.4 mm); Bottom
+        Layers **2**, min shell thickness **0**; Top Layers **~10–11** with ≥ 2
+        infill layers (so first-layer squish can't bias the top); solid infill
+        speed = profile value; top solid infill speed **60 mm/s**; minimum layer
+        time **0**; moderate fan. Small infill decouples the first layer.
+      - Judge by **top-surface texture**: rough/ridged = over, valleys/gaps =
+        under; the smoothest top wins. Prefer the widest flat area.
+      - Result updates the ABS flow ratio in OrcaSlicer only (Klipper has no
+        extrusion multiplier; `M221` is a runtime override).
+      - **Status 2026-09-19 (recovered from the 08-03/08-15 sessions):** the cubes
+        were printed on 2026-08-03 but the per-cube `M221` injection was never
+        confirmed live (`extrusion_factor` read `None`), so no winner was recorded.
+        On 2026-08-15 OrcaSlicer's coarse Flow Rate pass picked **0** around the
+        profile's 0.93526, and the untracked `slicer_profiles/orcaslicer/Generic
+        ABS.orca_filament` was then set to **1.0** as a test centre for a re-run.
+        The profile therefore does not match the 0.9334 this document and
+        `slicer_profiles/README.md` state. Finish the re-run, write the value here,
+        and commit the profile.
 - [ ] Cooling and layer times
 - [ ] Retraction
 - [ ] Infill/perimeter overlap

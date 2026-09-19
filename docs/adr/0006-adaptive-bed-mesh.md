@@ -71,3 +71,17 @@ correct polygon bounds. On the next print Klipper reported *"Found 1 objects"*,
 *"Adapted probe count: (3,3)"* — **9 points, 44 s** instead of 121 points and ~12 min.
 
 No slicer change was needed. This also enables per-object cancellation in Mainsail.
+
+### 2026-09-19 — recorded from the 2026-08-03 session: one adaptive mesh fell back to the full grid
+
+The Ellis extrusion-multiplier print of 2026-08-03 was sliced headless with the
+OrcaSlicer CLI, which never emitted `EXCLUDE_OBJECT_DEFINE` (OrcaSlicer disables object
+labelling when `single_extruder_multi_material` is set in the machine preset, and the
+five cubes shared one model). The markers were injected by a post-processing script
+instead. On the printer, that file's mesh spanned X → 320 / Y → 291, i.e. the full
+11×11 fallback, not the 9-point adaptive mesh. It was noticed in the session and not
+investigated. Likely cause: Moonraker's `preprocess_cancellation` rewrote the injected
+definitions on upload (the same hook that later made the injected `M221` values
+unverifiable, see [ADR-0016](0016-squish-test-grid-not-live-babystep.md) revision).
+Not a regression for GUI-sliced files, which still adapt; recorded so the next headless
+slice does not rediscover it.

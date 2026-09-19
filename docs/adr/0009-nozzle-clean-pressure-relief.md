@@ -101,3 +101,15 @@ early pre-QGL call, so the rejection this ADR documents — not dragging the the
 to print temperature before leveling — still holds. The pressure-relief retract on the
 no-purge path is unchanged. See also ADR-0015's revision for the print-start purge
 position fix.
+
+### 2026-09-19 — recorded from the 2026-08-01 session: `CLEAN=30` blocked for 13 minutes
+
+`CLEAN_NOZZLE CLEAN=<temp>` ends with `M109 S{clean_temp}`, which (by the `heatsoak.cfg`
+override) waits until the nozzle is within 1 °C of the value in either direction. A
+`CLEAN_NOZZLE CLEAN=30` sent from the UI on 2026-08-01 therefore waited for the nozzle to
+cool from 232 °C to 30 °C, about 13 minutes, and the user ended it with an emergency
+stop. No config change was made then or now: the wait is what `CLEAN` means, and the
+150 °C value `PRINT_START` passes is the right one for TAP. Recorded because it is the
+third instance of the same failure shape (an uncancellable temperature wait, see
+[ADR-0003](0003-temperature-gated-soak.md) and [ADR-0017](0017-refuse-slicer-preheat.md)):
+any `CLEAN` below ~120 °C is effectively a long, uninterruptible dwell.

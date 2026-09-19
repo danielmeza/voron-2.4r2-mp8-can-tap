@@ -35,6 +35,9 @@ file *says* and what the printer *does* are different questions.
 
 - After any config change: sync, `RESTART`, and **query the machine** to confirm the
   effective value (`/printer/objects/query?configfile`).
+- **Check `print_stats.state` first.** No `RESTART`, macro, heater or motion command
+  while it is `printing` or `paused`; uploading a file is fine. An agent restarted
+  Klipper mid-print on 2026-08-01. There is no camera, so this query is the only guard.
 - Prefer measurement over inference. Several findings here — the exhaust fan fighting
   the soak, the uncancellable `TEMPERATURE_WAIT`, `STANDBY_WARM` never firing — were
   invisible in the config and only appeared under instrumentation.

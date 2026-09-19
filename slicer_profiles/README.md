@@ -63,6 +63,24 @@ Still need to set by hand in **Print Settings**: "Label objects" on (Others tab)
 first-layer line width **120%** (First layer tab). Two fields, not the whole table
 this used to be.
 
+### Machine cost — `time_cost: 440` (per hour, 2026-09-19)
+
+OrcaSlicer has no electricity field; `time_cost` on the printer profile is the hourly
+machine cost it multiplies into the estimate. Derived from the completed ABS print of
+2026-09-18 (bed 100 °C, 1214 one-second samples in `klippy.log`):
+
+| Consumer | Measured duty | Average power |
+|---|---|---|
+| Bed, 650 W (`heated_bed.cfg`) | 44 % | ~285 W |
+| Hotend (~65 W assumed) | 47 % | ~30 W |
+| Electronics, fans, motors | estimate | ~50 W |
+| **Total** | | **~365 W** |
+
+At **1200 COP/kWh** (the tariff the user quoted) that is **~440 COP/h** for ABS; a PLA
+print at 55 °C bed runs about 250 COP/h. The tariff and the hotend wattage are the two
+inputs to revisit. `filament_cost` (per kg) lives on the filament profile and is still
+unset — it needs the price of the spool.
+
 ### Filament-profile values (not in the printer bundle)
 
 The `.orca_printer` above carries **printer** settings only. These are per-filament and

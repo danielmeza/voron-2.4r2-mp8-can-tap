@@ -105,3 +105,42 @@ Lessons recorded:
 - `Z_OFFSET_APPLY_PROBE` direction already validated; the grid's center (delta 0)
   matching the live `z_offset` is the consistency check.
 
+### 2026-08-04 — -0.609 → -0.559 (trial), user judgment overrides grid evidence
+
+The completed Ellis EM cross-check (extrusion-multiplier test, not a Z test) came
+out with a first layer the user judged "too up" (under-squished), and a direct
+request for 0.05 mm more squish was accepted over re-running the grid: baked
+`z_offset: -0.609 → -0.559`.
+
+What forced the change: a visual judgment on a real completed print, taken as
+authoritative this round — over the grid evidence that `-0.569` (only 0.04 mm more
+squish than -0.609) already over-squished every square. -0.559 is 0.01 mm deeper
+into that zone, so this is explicitly a **trial**: direction is safe (less negative
+z_offset lowers the nozzle, per the validated `Z_OFFSET_APPLY_PROBE`/`probe.py`
+mapping), but the magnitude contradicts the 2026-08-02 grid. If the next first
+layer shows raised line borders / over-squish (the -0.569 signature), revert to
+`-0.609` and re-run `SQUISH_TEST_GRID`. The EM cross-check verdict itself (top
+surface, EM 0.92–0.96 band) is unaffected by this Z change.
+
+
+### 2026-09-19 — the -0.559 trial rests on a print whose flow state was never verified
+
+Recovered from the OpenCode transcript of 2026-08-03: the Ellis EM cross-check print that
+the 08-04 entry calls "completed" was sliced at `filament_flow_ratio 1.0` with per-cube
+`M221 S92…S96` injected by a post-processing script. Once it was printing, the live
+`extruder.extrusion_factor` read `None`, the session ended on "suspicious, Moonraker's
+`preprocess_cancellation` may have altered the injected commands", and the question was
+never closed. So the five cubes may all have printed at flow 1.0, about 7 % over the
+0.9334 profile, and the "too up" first layer judged the next morning could be an
+extrusion artefact rather than a Z one. The -0.559 value is still live on the machine
+and still uncommitted. Before either committing it or reverting to -0.609, run
+`SQUISH_TEST_GRID` once more at the current flow ratio; the EM cross-check result itself
+was never recorded and is still open in [TUNING_PLAN](../TUNING_PLAN.md).
+
+### 2026-09-19 — -0.559 confirmed by the user; trial closed
+
+Same day as the entry above: the user confirmed `z_offset: -0.559` stays. It has been the
+live value on the machine since 2026-08-04 (read back from the 15:02 config dump) and
+every print since, including the completed calibration cube of 2026-09-18, ran on it.
+The caveat above stands as history: the confirmation is a user judgment across those
+prints, not a grid re-run at a verified flow ratio.

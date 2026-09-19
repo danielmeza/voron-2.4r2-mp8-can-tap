@@ -58,11 +58,18 @@ pwsh ./scripts/Update-VoronMcuFirmware.ps1
   returns 502, no working remote camera).
 - Flash order (above) is a safety requirement, not just convenience.
 
-## VSCode SFTP
+## Reaching the printer and syncing config
 
-`.vscode/sftp.json` watches `config/` and uploads on save to `biqu@192.168.100.81`.
-After upload, SSH in and `RESTART` Klipper, then query the effective values via
-`/printer/objects/query?configfile` to confirm the machine actually got what the file says.
+- Host: `voron.local` (Moonraker on port 80/7125), SSH alias `voron` (key auth, user
+  `biqu`). `.vscode/sftp.json` still points at `192.168.100.81`, which has not been
+  reachable since July 2026; use the Moonraker upload API
+  (`POST /server/files/upload`, `root=config`, `path=printer/<dir>`) or `scp` over the alias.
+- **Check `print_stats.state` before every RESTART, FIRMWARE_RESTART, macro, heater or
+  motion command.** `printing` or `paused` means hands off; uploading a file is fine
+  (it only takes effect on the next restart). This rule exists because an agent
+  restarted Klipper mid-print on 2026-08-01. There is no camera to catch it.
+- After upload, `RESTART`, then query `/printer/objects/query?configfile` to confirm
+  the machine actually got what the file says.
 
 ## Verification disciplines
 

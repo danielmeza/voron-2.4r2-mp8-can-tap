@@ -41,6 +41,9 @@ the record, and this repo has already re-learned the same lesson twice without i
 | [0014](0014-nonblocking-print-end-lights.md) | Post-print light show is non-blocking | Accepted |
 | [0015](0015-purge-into-bucket-not-bed.md) | Purge into the trash bin, not onto the print bed | Accepted |
 | [0016](0016-squish-test-grid-not-live-babystep.md) | First-layer squish: a static test grid, not live babystepping | Accepted |
+| [0017](0017-refuse-slicer-preheat.md) | PRINT_START refuses a file whose slicer already heated the hotend | Accepted |
+| [0018](0018-reset-velocity-limits-after-print.md) | Reset motion limits when a print ends or is cancelled | Accepted |
+| [0019](0019-cold-start-qgl-waits-for-probe-temp.md) | Cold start: wait for probe temperature before the first QGL | Accepted |
 
 ## Why these exist
 
