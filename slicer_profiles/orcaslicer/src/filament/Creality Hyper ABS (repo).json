@@ -1,0 +1,96 @@
+{
+	"name": "Creality Hyper ABS (repo)",
+	"filament_settings_id": [
+		"Creality Hyper ABS (repo)"
+	],
+	"inherits": "Generic ABS @System",
+	"from": "User",
+	"version": "2.4.0.3",
+	"filament_vendor": [
+		"Creality"
+	],
+	"filament_type": [
+		"ABS"
+	],
+	"compatible_printers": [
+		"Voron 2.4 350 0.4 nozzle"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"nozzle_temperature": [
+		"230"
+	],
+	"nozzle_temperature_initial_layer": [
+		"235"
+	],
+	"nozzle_temperature_range_low": [
+		"230"
+	],
+	"nozzle_temperature_range_high": [
+		"270"
+	],
+	"hot_plate_temp": [
+		"95"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	],
+	"textured_plate_temp": [
+		"95"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	],
+	"chamber_temperature": [
+		"50"
+	],
+	"filament_flow_ratio": [
+		"0.903"
+	],
+	"filament_max_volumetric_speed": [
+		"23"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.036"
+	],
+	"fan_min_speed": [
+		"10"
+	],
+	"fan_max_speed": [
+		"60"
+	],
+	"overhang_fan_speed": [
+		"60"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"slow_down_layer_time": [
+		"12"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"filament_density": [
+		"1.08"
+	],
+	"temperature_vitrification": [
+		"80"
+	],
+	"filament_wipe": [
+		"1"
+	],
+	"filament_retraction_length": [
+		"0.5"
+	],
+	"filament_retraction_speed": [
+		"35"
+	],
+	"filament_deretraction_speed": [
+		"35"
+	]
+}

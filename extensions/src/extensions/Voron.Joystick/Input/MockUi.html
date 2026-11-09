@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Voron virtual joystick</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --fg: #16181d; --muted: #666e7a; --card: #fff; --line: #d8dce2;
+    --pad: #e7eaef; --knob: #2f6feb; --zknob: #7a45d1; --ok: #1a7f37; --warn: #9a6700; --bad: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --fg: #e6e8ec; --muted: #99a1ad; --card: #1c1f25; --line: #2c313a;
+      --pad: #23272f; --knob: #4c8dff; --zknob: #a371f7; --ok: #3fb950; --warn: #d29922; --bad: #f85149;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
+    font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-user-select: none; user-select: none; touch-action: manipulation;
+  }
+  h1 { font-size: 17px; margin: 0 0 12px; font-weight: 650; }
+  .wrap { max-width: 600px; margin: 0 auto; display: grid; gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .banner { border-radius: 12px; padding: 10px 14px; font-weight: 600; border: 1px solid var(--line); }
+  .banner.ok   { color: var(--ok);   border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+  .banner.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+  .banner.bad  { color: var(--bad);  border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+
+  .stage { display: flex; gap: 20px; align-items: center; justify-content: center; flex-wrap: wrap; }
+  .stick { display: grid; justify-items: center; gap: 8px; }
+  .stick .label { color: var(--muted); font-size: 13px; font-weight: 600; letter-spacing: .04em; }
+
+  /* XY: a round pad, like the gate of an arcade stick. */
+  #xypad {
+    position: relative; width: 250px; height: 250px; border-radius: 50%;
+    background: var(--pad); border: 1px solid var(--line); touch-action: none;
+  }
+  #xypad::before, #xypad::after { content: ""; position: absolute; background: var(--line); }
+  #xypad::before { left: 50%; top: 8%; bottom: 8%; width: 1px; }
+  #xypad::after { top: 50%; left: 8%; right: 8%; height: 1px; }
+  #xyknob {
+    position: absolute; width: 66px; height: 66px; border-radius: 50%; background: var(--knob);
+    left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  }
+
+  /* Z: a single-axis vertical lever. Spring-returns to centre, exactly like the real thing. */
+  #zpad {
+    position: relative; width: 84px; height: 250px; border-radius: 42px;
+    background: var(--pad); border: 1px solid var(--line); touch-action: none;
+  }
+  #zpad::after { content: ""; position: absolute; top: 50%; left: 14%; right: 14%; height: 1px; background: var(--line); }
+  #zknob {
+    position: absolute; width: 66px; height: 66px; border-radius: 50%; background: var(--zknob);
+    left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  }
+  .tick { position: absolute; left: 0; right: 0; text-align: center; color: var(--muted); font-size: 13px; font-weight: 600; }
+  .tick.up { top: 8px; }
+  .tick.down { bottom: 8px; }
+  .disabled { opacity: .4; pointer-events: none; }
+
+  button {
+    font: inherit; font-weight: 600; color: var(--fg); background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; min-width: 104px;
+    touch-action: none; cursor: pointer;
+  }
+  button:active, button.on { background: var(--knob); color: #fff; border-color: var(--knob); }
+
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .hint { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Voron virtual joystick</h1>
+
+  <div id="gate" class="banner warn">connecting…</div>
+
+  <div class="card">
+    <div class="stage">
+      <div class="stick">
+        <div id="xypad"><div id="xyknob"></div></div>
+        <span class="label">X / Y</span>
+      </div>
+      <div class="stick">
+        <div id="zpad">
+          <span class="tick up">Z +</span>
+          <div id="zknob"></div>
+          <span class="tick down">Z −</span>
+        </div>
+        <span class="label">Z</span>
+      </div>
+      <button id="prec" type="button">Precision</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <dl>
+      <dt>Command</dt><dd id="cmd">0.00, 0.00, 0.00</dd>
+      <dt>Printer</dt><dd id="state">—</dd>
+      <dt>Homed</dt><dd id="homed">—</dd>
+      <dt>Position</dt><dd id="pos">—</dd>
+    </dl>
+    <p class="hint">
+      Both sticks spring back to centre when released, and how far you push is how fast it goes.
+      Keyboard works too: arrow keys for X/Y, <code>PgUp</code>/<code>PgDn</code> for Z,
+      <code>Shift</code> for precision. If this page stops sending, the service zeroes the input on
+      its own.
+    </p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const gate = document.getElementById('gate');
+  const zstick = document.getElementById('zpad');
+  const out = { cmd: document.getElementById('cmd'), state: document.getElementById('state'),
+                homed: document.getElementById('homed'), pos: document.getElementById('pos') };
+
+  const input = { x: 0, y: 0, z: 0, precision: false };
+  const keys = new Set();
+
+  // Screen Y grows downward; printer Y and Z grow the other way, so the vertical axis is negated.
+  function makeStick(padId, knobId, horizontal, apply) {
+    const pad = document.getElementById(padId);
+    const knob = document.getElementById(knobId);
+    let dragging = false;
+
+    function place(x, y) {
+      const rx = (pad.clientWidth - knob.clientWidth) / 2;
+      const ry = (pad.clientHeight - knob.clientHeight) / 2;
+      knob.style.left = `calc(50% + ${(horizontal ? x : 0) * rx}px)`;
+      knob.style.top = `calc(50% + ${-y * ry}px)`;
+    }
+
+    function read(event) {
+      const box = pad.getBoundingClientRect();
+      let x = 0;
+      let y = -((event.clientY - box.top) / box.height * 2 - 1);
+
+      if (horizontal) {
+        x = (event.clientX - box.left) / box.width * 2 - 1;
+        const magnitude = Math.hypot(x, y);
+        if (magnitude > 1) { x /= magnitude; y /= magnitude; }
+      }
+
+      y = Math.max(-1, Math.min(1, y));
+      apply(x, y);
+      place(x, y);
+      send();
+    }
+
+    function release() {
+      if (!dragging) return;
+      dragging = false;
+      apply(0, 0);
+      place(0, 0);
+      send(); send();
+    }
+
+    pad.addEventListener('pointerdown', e => {
+      dragging = true; pad.setPointerCapture(e.pointerId); read(e);
+    });
+    pad.addEventListener('pointermove', e => { if (dragging) read(e); });
+    pad.addEventListener('pointerup', release);
+    pad.addEventListener('pointercancel', release);
+    pad.addEventListener('lostpointercapture', release);
+
+    return { place, isDragging: () => dragging };
+  }
+
+  const xy = makeStick('xypad', 'xyknob', true, (x, y) => { input.x = x; input.y = y; });
+  const z = makeStick('zpad', 'zknob', false, (_, y) => { input.z = y; });
+
+  const prec = document.getElementById('prec');
+  const precDown = e => { e.preventDefault(); prec.classList.add('on'); input.precision = true; send(); };
+  const precUp = () => { prec.classList.remove('on'); input.precision = false; send(); };
+  prec.addEventListener('pointerdown', precDown);
+  prec.addEventListener('pointerup', precUp);
+  prec.addEventListener('pointerleave', precUp);
+  prec.addEventListener('pointercancel', precUp);
+
+  const KEYMAP = {
+    ArrowLeft: () => input.x = -1, ArrowRight: () => input.x = 1,
+    ArrowUp: () => input.y = 1, ArrowDown: () => input.y = -1,
+    PageUp: () => input.z = 1, PageDown: () => input.z = -1,
+  };
+  addEventListener('keydown', e => {
+    if (!(e.key in KEYMAP) && e.key !== 'Shift') return;
+    e.preventDefault();
+    keys.add(e.key);
+    applyKeys();
+  });
+  addEventListener('keyup', e => { keys.delete(e.key); applyKeys(); });
+  addEventListener('blur', () => { keys.clear(); applyKeys(); });
+
+  function applyKeys() {
+    if (xy.isDragging() || z.isDragging()) return;
+    input.x = 0; input.y = 0; input.z = 0;
+    for (const key of keys) { KEYMAP[key]?.(); }
+    input.precision = keys.has('Shift');
+    xy.place(input.x, input.y);
+    z.place(0, input.z);
+    send();
+  }
+
+  let sending = false;
+  async function send() {
+    if (sending) return;
+    sending = true;
+    try {
+      await fetch('input', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+    } catch { /* the poll loop surfaces connection trouble */ }
+    finally { sending = false; }
+  }
+
+  // Keep the service's watchdog fed while deflected, and mirror the command back to the reader.
+  setInterval(() => {
+    if (input.x || input.y || input.z) send();
+    out.cmd.textContent = `${input.x.toFixed(2)}, ${input.y.toFixed(2)}, ${input.z.toFixed(2)}`
+      + (input.precision ? '  (precision)' : '');
+  }, 50);
+
+  async function poll() {
+    try {
+      const status = await (await fetch('status')).json();
+      out.state.textContent = status.printState ?? '—';
+      out.homed.textContent = status.homedAxes ? status.homedAxes : 'not homed';
+      out.pos.textContent = status.position ?? '—';
+      zstick.classList.toggle('disabled', status.zEnabled === false);
+
+      let text, kind;
+      if (!status.connected) { text = 'no connection to Moonraker'; kind = 'bad'; }
+      else if (!status.klippyReady) { text = 'klippy is not ready'; kind = 'bad'; }
+      else if (status.printing) { text = `blocked — a print is ${status.printState}`; kind = 'bad'; }
+      else if (!status.homed) { text = 'not homed — first input will run the homing macro'; kind = 'warn'; }
+      else { text = 'ready to jog'; kind = 'ok'; }
+      gate.textContent = text;
+      gate.className = `banner ${kind}`;
+    } catch {
+      gate.textContent = 'the extension service is not responding';
+      gate.className = 'banner bad';
+    }
+  }
+  poll();
+  setInterval(poll, 1000);
+})();
+</script>
+</body>
+</html>
