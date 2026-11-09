@@ -53,18 +53,29 @@ any conflicting duplicate, so this cannot silently regress.
 
 ## Revisions
 
-### 2026-11-09 — `[extruder]` was never single-owner; recorded as the second exception
+### 2026-11-09 — the owner is a concern, not a section; the real split map
 
-The Decision table says `stealburner/stepper.cfg` owns everything about the toolhead
-extruder. It never did: `[extruder]` is opened in three files —
-`stealburner/stepper.cfg` (pins, microsteps, `rotation_distance`),
-`stealburner/heatend.cfg` (heater, sensor, nozzle, temperature limits) and
-`stealburner/extruder.cfg` (`filament_diameter`, `gear_ratio`, pressure advance). Found
-by the PR 1 review against this record.
+The Decision table reads as one file per section, and its last row gives
+`stealburner/stepper.cfg` "everything about the toolhead extruder". The tree was never
+like that. A scan of section headers over `config/**/*.cfg` (2026-11-09, PR 1 review)
+finds eleven sections opened in more than one loaded file, each split by concern with
+disjoint keys:
 
-The keys are disjoint today, so the merge has no winner to pick, and
-`klipper_config_lint.py` (exit 0 on the tree) fails the first key that appears in two of
-them. Like `[probe]`, it is left split rather than moved on a working machine: each file
-maps to one physical part (motor, hotend, extrusion tuning). Rule from here: a new
-`[extruder]` key goes in the file of its part, never in two. Consolidating it is backlog
-alongside `[probe]`.
+| Section | Split |
+|---|---|
+| `[stepper_x]`, `[stepper_y]`, `[stepper_z]` | pins in `gantry/stepper_drivers.cfg` · `microsteps`, `rotation_distance` in `gantry/steppers.cfg` · endstop, position limits, homing in `gantry/kinematics.cfg` |
+| `[stepper_z1]`…`[stepper_z3]` | pins in `gantry/stepper_drivers.cfg` · motor values in `gantry/steppers.cfg` |
+| `[probe]` | pin and offsets (incl. `z_offset`) in `gantry/kinematics.cfg` · sampling in `gantry/z_calibration.cfg` (two sections there) |
+| `[quad_gantry_level]`, `[bed_mesh]` | geometry (corners, points, mesh bounds) in `gantry/kinematics.cfg` · speeds, retries, algorithm in `gantry/z_calibration.cfg` |
+| `[extruder]` | motor in `stealburner/stepper.cfg` · heater, sensor, nozzle in `stealburner/heatend.cfg` · `filament_diameter`, `gear_ratio`, pressure advance in `stealburner/extruder.cfg` |
+| `[respond]` | keys in `printer.cfg`; the `mainsail.cfg` header is empty |
+
+So the rule that actually holds is **one owner per key**, decided by concern: geometry
+in `kinematics.cfg`, probing behaviour in `z_calibration.cfg`, pins in
+`stepper_drivers.cfg`, motor values in `steppers.cfg`, the toolhead by physical part.
+What the original incident needed — no key with two values — is what
+`klipper_config_lint.py` enforces: it exits 1 when two files give one key different
+values. The same key with the same value twice is only `INFO redundant-duplicate` (exit
+0), so a repeated key is not caught until the copies diverge. A new key goes in the file
+of its concern and nowhere else. Moving every section into one file is not planned;
+the `[probe]` backlog item above stands on its own.
