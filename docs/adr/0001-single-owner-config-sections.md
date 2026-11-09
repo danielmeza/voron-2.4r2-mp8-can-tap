@@ -66,9 +66,9 @@ disjoint keys:
 | `[stepper_x]`, `[stepper_y]`, `[stepper_z]` | pins in `gantry/stepper_drivers.cfg` · `microsteps`, `rotation_distance` in `gantry/steppers.cfg` · endstop, position limits, homing in `gantry/kinematics.cfg` |
 | `[stepper_z1]`…`[stepper_z3]` | pins in `gantry/stepper_drivers.cfg` · motor values in `gantry/steppers.cfg` |
 | `[probe]` | pin and offsets (incl. `z_offset`) in `gantry/kinematics.cfg` · sampling in `gantry/z_calibration.cfg` (two sections there) |
-| `[quad_gantry_level]`, `[bed_mesh]` | geometry (corners, points, mesh bounds) in `gantry/kinematics.cfg` · speeds, retries, algorithm in `gantry/z_calibration.cfg` |
+| `[quad_gantry_level]`, `[bed_mesh]` | `gantry_corners`, QGL `points`, mesh bounds in `gantry/kinematics.cfg` · speeds, retries, `algorithm`, `probe_count` in `gantry/z_calibration.cfg` |
 | `[extruder]` | motor in `stealburner/stepper.cfg` · heater, sensor, nozzle in `stealburner/heatend.cfg` · `filament_diameter`, `gear_ratio`, pressure advance in `stealburner/extruder.cfg` |
-| `[respond]` | keys in `printer.cfg`; the `mainsail.cfg` header is empty |
+| `[respond]` | keys in `printer.cfg`; empty headers in `mainsail.cfg` and `klippy.conf` (the scan of `*.cfg` missed the latter) |
 
 So the rule that actually holds is **one owner per key**, decided by concern: geometry
 in `kinematics.cfg`, probing behaviour in `z_calibration.cfg`, pins in

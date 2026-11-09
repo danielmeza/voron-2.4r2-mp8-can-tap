@@ -52,13 +52,12 @@ python3 scripts/klipper_config_lint.py     # exit 1 on ERROR
 It replicates Klipper's actual load semantics (non-recursive `glob`, sorted includes,
 `RawConfigParser(strict=False)`). It must be clean before committing config changes.
 
-## Rule 4 — One file owns each config section
+## Rule 4 — One file owns each config key
 
-See [ADR-0001](docs/adr/0001-single-owner-config-sections.md). Do not spread one section
-across files; the merge is silent and the winner is decided by filename sort order.
-In practice the owner is a *concern*, not a whole section: several sections are split
-across files with disjoint keys. ADR-0001's 2026-11-09 revision maps every split. One
-key, one file.
+See [ADR-0001](docs/adr/0001-single-owner-config-sections.md). Never set one key in two
+files; the merge is silent and the winner is decided by filename sort order. Several
+sections are split across files by concern, with disjoint keys; ADR-0001's 2026-11-09
+revision maps every split. A new key goes in the file of its concern, nowhere else.
 
 ## Rule 5 — Physical-safety checks are not optional
 
