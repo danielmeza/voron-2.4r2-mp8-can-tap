@@ -468,7 +468,8 @@ by `scripts/verify_slicer_gcode.py`. [ADR-0012](adr/0012-slicer-integration-for-
          best: fully fused lines, no gaps, resists a peel test.
          `-0.529 → -0.609`.
 
-      Final: `[probe] z_offset: -0.514 → -0.609` in
+      Final: `[probe] z_offset: -0.514 → -0.559` (grid result `-0.609`, then the
+      2026-08-04 change below) in
       [gantry/kinematics.cfg](../config/printer/gantry/kinematics.cfg).
 
       **2026-08-02 correction:** the first pass at this step (`-0.529 + 0.08 =
@@ -486,6 +487,12 @@ by `scripts/verify_slicer_gcode.py`. [ADR-0012](adr/0012-slicer-integration-for-
       `Z_STEP=0.002` (center ±0.008mm) confirmed the **center square (delta 0) is
       best** — `-0.609` stands, no change. Join gaps at correct squish are a
       flow/PA artifact, not a Z issue (see ADR-0016 revisions).
+
+      **2026-08-04 → current: `-0.609 → -0.559`.** The user judged the Ellis EM
+      cross-check first layer under-squished and took 0.05mm more squish over a
+      grid re-run (a trial that contradicts the 08-02 grid, where `-0.569`
+      over-squished). Confirmed by the user 2026-09-19, see the ADR-0016 revisions.
+      Live value queried 2026-11-09 (`configfile.settings.probe.z_offset`): **`-0.559`**.
 
       **Still open:** plate-side A/B test (smooth vs. textured) now that squish is
       dialed in — see the "plate side" discussion earlier in this doc, not yet

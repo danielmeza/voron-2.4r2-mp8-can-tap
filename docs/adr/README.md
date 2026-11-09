@@ -36,7 +36,7 @@ the record, and this repo has already re-learned the same lesson twice without i
 | [0009](0009-nozzle-clean-pressure-relief.md) | Relieve nozzle pressure before wiping | Accepted |
 | [0010](0010-belt-tension-method.md) | BTT Belter is the belt-tension method of record | Accepted |
 | [0011](0011-standby-signalling-and-chamber-on-screen.md) | Signal standby on the LEDs; chamber temp on the print screen | Accepted |
-| [0012](0012-slicer-integration-for-tuning.md) | Slicer integration for the tuning phase | Accepted |
+| [0012](0012-slicer-integration-for-tuning.md) | Slicer integration for the tuning phase | Accepted; retraction part superseded by [0021](0021-slicer-retraction-by-default.md) |
 | [0013](0013-probe-samples-reduced.md) | Probe samples: 3 → 2 | Accepted |
 | [0014](0014-nonblocking-print-end-lights.md) | Post-print light show is non-blocking | Accepted |
 | [0015](0015-purge-into-bucket-not-bed.md) | Purge into the trash bin, not onto the print bed | Accepted |

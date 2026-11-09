@@ -77,3 +77,22 @@ reflash (see `firmware/README.md`):
 - Per-board build configs must be kept in `firmware/`, because Klipper's `.config`
   only ever holds the last board built.
 - If Moonraker ever gains a genuine post-update hook, revisit this.
+
+## Revisions
+
+### 2026-11-09 — the script does install the Linux MCU, through key-based root SSH
+
+The Consequences bullet above says the script cannot complete the Linux MCU. Commit
+84581b5 (2026-07-24, the same day as this record) changed that: `Test-RootSsh` checks for
+key-based root (`id -u` is 0), and when it is there `Install-LinuxMcu` replicates
+Klipper's `flash-linux.sh` as root — stops `klipper` and `klipper-mcu`, backs the outgoing
+binary up to `/home/biqu/klipper-fw-backups/klipper_mcu-PREVIOUS.elf`, copies the staged
+ELF to `/usr/local/bin/klipper_mcu`, restarts both. Without the key it falls back to the
+original behaviour (build and stage only) and prints the `ssh-copy-id` command.
+
+The trade-off was never written down: the printer's root account accepts the
+workstation's `id_ed25519_voron` key, i.e. root on the box that drives the heaters,
+reachable from the home LAN. No alternative was recorded at the time; the obvious ones
+are a `NOPASSWD` sudo rule limited to the install, or keeping the step manual as the
+original Consequences describe. Either is open if root key access is ever unwanted.
+Found by the PR 1 review.

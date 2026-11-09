@@ -124,3 +124,13 @@ observation that the chamber reached 44.9 °C within a minute of the hotend reac
 temperature is the closest evidence. A proposal to heat over the purge bucket instead
 (so the ooze lands in the bin) was withdrawn for this reason. If someone measures it and
 the centre makes no difference, that is the place to revisit.
+
+### 2026-11-09 — the 10-minute cold-start dwell was removed on 2026-07-24 and never recorded
+
+The Decision's `cold_start_extra_min` dwell (10 min when the chamber is below
+`cold_start_below: 30` °C) was deleted from `printing.cfg` in c399849, the commit behind
+the first revision above, and no entry said so. The commit message gives no reason for
+this part. It went in alongside the fix for the uncancellable `TEMPERATURE_WAIT`, and a
+fixed `G4` of 10 minutes has the same shape: `CANCEL_PRINT` queues behind it. A cold start
+now gets only the soak capped by `soak_max_min` (6 min), after the nozzle preheat and
+QGL. Found by the PR 1 review; the Decision text above is left as written.

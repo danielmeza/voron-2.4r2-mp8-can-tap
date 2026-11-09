@@ -5,3 +5,4 @@ bin
 # it changes on every re-slice. The findings from verifying it live in
 # docs/adr/0012-slicer-integration-for-tuning.md instead.
 slicer_profiles/**/*.gcode
+__pycache__/

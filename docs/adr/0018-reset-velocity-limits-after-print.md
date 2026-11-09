@@ -40,3 +40,17 @@ prints, which is exactly when the user reads the screen and jogs by hand.
   macro. `M204`-style shims from ADR-0012 are unaffected.
 - The reset runs before the park move in `_USER_CANCEL`, so a cancel parks at full
   configured limits rather than at a bridge's 250 mm/s².
+
+## Revisions
+
+### 2026-11-09 — on cancel the reset runs after the park, not before
+
+The last Consequence is wrong. mainsail's `CANCEL_PRINT` (`config/mainsail.cfg`) runs
+`_TOOLHEAD_PARK_PAUSE_CANCEL` first, then `_CLIENT_RETRACT`, `TURN_OFF_HEATERS`,
+`M106 S0`, and only then `user_cancel_macro` (`_USER_CANCEL`, which calls
+`_RESET_VELOCITY_LIMITS`). A cancel therefore parks at whatever limits the file left —
+as low as a bridge's 250 mm/s² — and the reset takes effect after the park. That is
+slower, not unsafe, and everything after it (hand jogs, the next print) still sees the
+configured limits. Moving the reset ahead of the park would mean editing `mainsail.cfg`,
+which [ADR-0002](0002-mainsail-owns-client-macros.md) rules out, so it stays as is. Found
+by the PR 1 review.

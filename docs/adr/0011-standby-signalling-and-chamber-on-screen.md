@@ -100,3 +100,12 @@ headers — not even in comments.** The first attempt at a fix quoted the offend
 and tripped the same check, which is a good illustration of how easy it is to reintroduce.
 
 The file is now tracked in `config/moonraker/` so this cannot silently regress.
+
+### 2026-11-09 — PRINT_END no longer calls `Status_Off`
+
+The Decision says `PRINT_END` re-asserts `STATUS_READY` after its existing `Status_Off`.
+That call went away on 2026-07-25 (bf0f9ec) with the blocking two-minute party dwell: the
+lights now hand off to `[delayed_gcode _PARTY_FINISH]` (`leds.cfg`), which ends in
+`STATUS_READY` while the bed target is still set and `STATUS_OFF` otherwise. The
+behaviour this record wants is unchanged; only the description of the code drifted.
+Found by the PR 1 review.

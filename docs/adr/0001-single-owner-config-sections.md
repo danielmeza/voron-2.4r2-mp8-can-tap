@@ -50,3 +50,21 @@ any conflicting duplicate, so this cannot silently regress.
   but it is the same fragility and is tracked as backlog.
 - Changing Z current from an accidental mix to a uniform 0.9 A is a **real behaviour
   change** and needs re-verification of QGL and Z motor temperature under load.
+
+## Revisions
+
+### 2026-11-09 — `[extruder]` was never single-owner; recorded as the second exception
+
+The Decision table says `stealburner/stepper.cfg` owns everything about the toolhead
+extruder. It never did: `[extruder]` is opened in three files —
+`stealburner/stepper.cfg` (pins, microsteps, `rotation_distance`),
+`stealburner/heatend.cfg` (heater, sensor, nozzle, temperature limits) and
+`stealburner/extruder.cfg` (`filament_diameter`, `gear_ratio`, pressure advance). Found
+by the PR 1 review against this record.
+
+The keys are disjoint today, so the merge has no winner to pick, and
+`klipper_config_lint.py` (exit 0 on the tree) fails the first key that appears in two of
+them. Like `[probe]`, it is left split rather than moved on a working machine: each file
+maps to one physical part (motor, hotend, extrusion tuning). Rule from here: a new
+`[extruder]` key goes in the file of its part, never in two. Consolidating it is backlog
+alongside `[probe]`.

@@ -56,6 +56,7 @@ It replicates Klipper's actual load semantics (non-recursive `glob`, sorted incl
 
 See [ADR-0001](docs/adr/0001-single-owner-config-sections.md). Do not spread one section
 across files; the merge is silent and the winner is decided by filename sort order.
+The two known exceptions, `[probe]` and `[extruder]`, are recorded in ADR-0001.
 
 ## Rule 5 — Physical-safety checks are not optional
 
