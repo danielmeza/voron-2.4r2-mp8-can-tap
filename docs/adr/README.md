@@ -44,6 +44,8 @@ the record, and this repo has already re-learned the same lesson twice without i
 | [0017](0017-refuse-slicer-preheat.md) | PRINT_START refuses a file whose slicer already heated the hotend | Accepted |
 | [0018](0018-reset-velocity-limits-after-print.md) | Reset motion limits when a print ends or is cancelled | Accepted |
 | [0019](0019-cold-start-qgl-waits-for-probe-temp.md) | Cold start: wait for probe temperature before the first QGL | Accepted |
+| [0020](0020-cool-the-toolhead-board.md) | Cool the toolhead board instead of lowering the chamber | Accepted |
+| [0021](0021-slicer-retraction-by-default.md) | Retraction belongs to the slicer by default; firmware retraction stays for live tuning | Accepted |
 
 ## Why these exist
 

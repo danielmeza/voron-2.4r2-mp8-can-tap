@@ -76,8 +76,9 @@ across files; the merge is silent and the winner is decided by filename sort ord
 | `docs/adr/` | architecture decision records — **start here** |
 | `docs/TUNING_PLAN.md` | phased plan + measured results |
 | `docs/BELT_TENSION.md` | belt tension, both measurement methods |
+| `docs/FILAMENT_CALIBRATION.md` | per-filament calibration order and where each result goes |
 | `firmware/` | per-board Klipper `.config` files (the machine keeps only the last one) |
-| `scripts/` | config linter, MCU firmware updater |
+| `scripts/` | config linter, MCU firmware updater, slicer gcode verifier, Orca bundle builder |
 | `slicer_profiles/` | Cura import profile + OrcaSlicer manual-entry table, from `docs/SLICER_SETUP.md` |
 
 ## Machine facts worth knowing

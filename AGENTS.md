@@ -97,7 +97,8 @@ GPIO pins must not conflict with those defined in `config/printer/mcu/cb1.cfg`
 | `config/printer/macros/` | PRINT_START, PRINT_END, soak, etc. |
 | `config/moonraker/` | moonraker.conf + KlipperScreen.conf |
 | `firmware/` | Per-MCU `.config` files for `make olddefconfig` |
-| `scripts/` | Linter, firmware updater, slicer gcode verifier |
+| `scripts/` | Linter, firmware updater, slicer gcode verifier, `build_orca_bundle.py` (rebuild/check the Orca preset bundle from `slicer_profiles/orcaslicer/src/`), `install_slicer_presets.py` (write presets into Orca/Cura user folders) |
+| `docs/FILAMENT_CALIBRATION.md` | per-filament calibration order; results go to `src/` presets and TUNING_PLAN |
 
 ## KlipperScreen gotcha
 

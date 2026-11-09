@@ -40,15 +40,20 @@ aborting the print — but silence is better than a shim firing every job.
   *"Move exceeds maximum extrusion cross section"*. Raise it **only if a specific test
   trips it**; it is a real safety check.
 
-## 4. Retraction — the setting that actually opens the gate
+## 4. Retraction — slicer by default, firmware when tuning
 
-**Enable "Use firmware retraction"** (emits `G10`/`G11`).
+**Leave "Use firmware retraction" OFF for normal printing** (the repo printer profile
+ships it off since 2026-09-22, [ADR-0021](adr/0021-slicer-retraction-by-default.md)).
+The slicer then owns retraction: length and speed per filament, "wipe while
+retracting", retract-on-layer-change, minimum travel. Files carry `G1 E-…` moves and
+Klipper's `[firmware_retraction]` section stays loaded but receives nothing.
 
-This is the whole point. Today `[firmware_retraction]` is configured but inert because
-Cura bakes retraction into `E` moves. Once the slicer emits `G10`/`G11`:
-
-- Klipper's values take over and the slicer's retraction fields are **ignored**
-- `SET_RETRACTION` can tune retraction **live, mid-print** — no re-slice per experiment
+**Tick it only while calibrating a new filament.** With it on the slicer emits
+`G10`/`G11`, Klipper's values take over, the slicer's retraction fields are ignored,
+and `SET_RETRACTION` tunes retraction **live, mid-print** with no re-slice per
+experiment. When the number is found, copy it into the filament preset and untick.
+The two methods never stack: a file uses one or the other, and the verifier (§7)
+fails a file that carries both.
 
 Current Klipper values (the starting point to tune from):
 
@@ -107,7 +112,7 @@ real print to observe.
 | Must be present | Why |
 |---|---|
 | `PRINT_START ... EXTRUDER=<n> BED=<n>` with **real numbers** | placeholders resolved |
-| `G10` / `G11` | firmware retraction live |
+| exactly one of `G10`/`G11` **or** `G1 E-…` | one retraction owner per file (ADR-0021); default is the slicer |
 | `EXCLUDE_OBJECT_DEFINE` | adaptive meshing works |
 | `M204` **or** `SET_VELOCITY_LIMIT ACCEL=` | per-feature acceleration |
 | `SET_PRINT_STATS_INFO` or `M73` | layer progress in the UI |

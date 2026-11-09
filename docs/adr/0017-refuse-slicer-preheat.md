@@ -10,7 +10,9 @@ for it. Neither is enforced, and the trap came back through a side door: the pro
 `.3mf` carried its own embedded printer profile, *"Voron 2.4 350 0.4 nozzle(Orcaslicer
 project.3mf)"*, with OrcaSlicer's stock start gcode (`M190 / M109 / PRINT_START`),
 firmware retraction **off** and `z_hop 0.4`. Every ABS job on 2026-09-18 and 09-19 was
-sliced with it. The PLA job sliced with the repo profile *"Voron 2.4 350 0.4"* was clean.
+sliced with it. The PLA job sliced with the repo profile (then named *"Voron 2.4 350 0.4"*,
+renamed *"Voron 2.4r2 350 TAP (repo)"* on 2026-09-19 so it can never be confused with an
+embedded copy) was clean.
 
 Measured on `klippy.log`, both days:
 
