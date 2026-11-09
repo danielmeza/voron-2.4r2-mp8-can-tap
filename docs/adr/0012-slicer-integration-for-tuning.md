@@ -1,6 +1,6 @@
 # 0012 — Slicer integration for the tuning phase
 
-**Status:** Accepted · 2026-07-25
+**Status:** Accepted · 2026-07-25 · retraction ownership superseded by [0021](0021-slicer-retraction-by-default.md) on 2026-09-22; everything else stands
 
 ## Context
 
@@ -212,3 +212,57 @@ The same test **empirically confirmed the non-clamping** in point 2 — it is no
 source reading. `square_corner_velocity` went to **12.0** against a configured `8.0`,
 and stayed there until explicitly restored. A slicer can and does raise this printer's
 motion limits mid-print; only OrcaSlicer's own clamping keeps acceleration in bounds.
+
+### 2026-09-19 — printer bundle: `wipe 0`, `single_extruder_multi_material 0`, `time_cost 440`
+
+Three profile fields corrected in `voron_2.4r2_350_can.orca_printer` so it can replace
+the installed profile as-is. `wipe: 1` conflicts with firmware retraction: the headless
+CLI run of 2026-08-03 refused to slice until it was cleared, and the GUI-sliced file of
+2026-09-19 shows `wipe = 0`, so the GUI had been dropping it silently.
+`single_extruder_multi_material: 1` makes OrcaSlicer skip `EXCLUDE_OBJECT_DEFINE`
+(found on 08-03); the machine has one extruder, and with 0 the slicer labels objects
+itself instead of relying on Moonraker's preprocessor. `time_cost` was 0; now 440
+(COP/h, derivation in `slicer_profiles/README.md`). The installed profile also differs
+in `z_hop` (0.3) and `retract_lift_above` (0): the repo's 0.2 / 0.3 stand, per the
+2026-07-30 correction in the README, and importing the bundle restores them.
+
+### 2026-09-19 — presets are sourced as JSON in the repo; the bundle is generated
+
+The `.orca_printer` used to be an opaque zip edited by unzipping, patching and re-zipping,
+and the filament and process presets were untracked exports that drifted (flow ratio 1.0
+vs the documented 0.9334; the process export from 08-01 never made it in). Now
+`slicer_profiles/orcaslicer/src/{printer,filament,process}/<name>.json` are the sources
+(all three as `inherits` deltas, the shape OrcaSlicer itself writes; the printer was a full
+158-key export until 2026-09-24, when installing it as-is made Orca error on selection) and `scripts/build_orca_bundle.py` produces one bundle carrying all three,
+with `--check` to catch a stale bundle. The generated file stays committed because the
+user imports it directly from the repo. The validator encodes what was learned from
+OrcaSlicer's `PresetBundle::import_json_presets`: the importer walks every JSON in the zip,
+skips `bundle_structure.json`, routes by `printer_settings_id` / `filament_settings_id` /
+`print_settings_id`, and silently drops a delta whose `inherits` parent is missing — the
+first build caught the renamed printer still carrying its old `printer_settings_id`.
+Rejected: shipping resolved full JSONs for filament and process (duplicates ~200 system
+keys that go stale across Orca versions) and shipping three separate bundles (three
+imports, three chances to forget one). Not yet verified: that the GUI import picks up all
+three presets from one bundle; if it imports only the printer, export a bundle from Orca
+and `--extract` it to compare the layout.
+
+### 2026-09-22 — two process presets, a second filament, and a direct installer
+
+The bundle now carries `0.20mm Standard @Voron (repo)` at the **slicer's default speeds**
+(the Voron system preset: walls 120/200, infill 200, first layer 50) and
+`0.20mm Fast @Voron (repo)` with the speeds the user had been running since 08-01
+(250/300/300, first layer 30, travel 400). The user asked for the default as the normal
+profile and the faster one as an explicit choice; the filament's `max_volumetric_speed`
+is what keeps the fast one honest, which is why that number now has a real value (23)
+on the new `Creality Hyper ABS (repo)` preset instead of the inherited 250.
+
+OrcaSlicer's *Import Configs* dropped the process preset three times in a row even after
+`compatible_printers` was added, and its 2.4.2 source shows no compatibility check in the
+import path, so the cause stayed unknown. Rather than keep guessing,
+`scripts/install_slicer_presets.py` writes the presets straight into
+`user/default/{machine,filament,process}/` with the `.info` sidecar, which is exactly
+what the GUI's "save preset" produces. Same script installs the Cura material
+(`cura/creality_hyper_abs.xml.fdm_material`); Cura already had normal and fast quality
+profiles for the Voron, so only the material was missing. The bundle remains for
+portability. Verified on disk 2026-09-22: 1 printer, 2 filaments, 2 processes in Orca,
+1 material in Cura; both apps were closed at the time.

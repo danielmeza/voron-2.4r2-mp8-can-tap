@@ -554,9 +554,38 @@ by `scripts/verify_slicer_gcode.py`. [ADR-0012](adr/0012-slicer-integration-for-
         On 2026-08-15 OrcaSlicer's coarse Flow Rate pass picked **0** around the
         profile's 0.93526, and the untracked `slicer_profiles/orcaslicer/Generic
         ABS.orca_filament` was then set to **1.0** as a test centre for a re-run.
-        The profile therefore does not match the 0.9334 this document and
-        `slicer_profiles/README.md` state. Finish the re-run, write the value here,
-        and commit the profile.
+        On 2026-09-19 the repo filament preset was reset to **0.9334** ("Generic ABS
+        (repo)", 260 °C, inside `voron_2.4r2_350_can.orca_printer`, built from
+        `slicer_profiles/orcaslicer/src/`) so an import gives the documented value;
+        the 1.0 test centre now lives only in the user's local OrcaSlicer. The Ellis/coarse re-run is still open: when
+        it lands, write the winner here and in the bundle.
+- [ ] **Creality Hyper Series ABS — new filament, 2026-09-22.** Temperature tower
+      done: **230 °C best**, still strings at the needle (dry it first). Starting preset
+      `Creality Hyper ABS (repo)` built from Creality's own OrcaSlicer numbers (23 mm³/s,
+      PA 0.03, fan 10–60 %, 12 s) — table in `slicer_profiles/README.md`.
+      **Flow pass 1 done 2026-09-22:** `flowrate_0_ABS_57m34s.gcode`, base 0.97 at 230 °C
+      (first layer 250), blocks −20…+20 step 5, **−5 best → 0.97 × 0.95 = 0.9215**.
+      Verified in the gcode header (`filament_flow_ratio = 0.97`, filament "Clarity ABS").
+      **Pass 2 done the same night:** `flowrate_0_ABS_1h4m.gcode`, base 0.9215, blocks
+      −9…0. **−2 best → 0.9215 × 0.98 = 0.903.** Read: −3 already showed the layer
+      below through the top (under); 0, −1 and −2 looked crowded (over-ish); −2 was the
+      last one before gaps, chosen per the wiki's "the higher of two doubtful blocks".
+      Both tests were sliced with Orca's "Default Setting" process and the old printer
+      copy "Voron 2.4r2 350 TAP repo"; use the `(repo)` presets from step 3 on.
+      **PA done 2026-09-24:** PA Pattern, DDE 0–0.08 step 0.002, at 230 °C / flow 0.903:
+      **0.036**, the last step before the lines after the centre spike stop touching
+      each other in the first 10 mm, corners still sharp. Verified against
+      `pa_pattern_100_500_ABS_22m32s.gcode` (SET_PRESSURE_ADVANCE 0 … 0.08 step 0.002).
+      Between the other ABS (0.022) and Creality's own 0.03 to 0.038.
+      Filament-preset value only; the machine default in `extruder.cfg` stays 0.022.
+      **Retraction done 2026-09-24:** `retraction_tower_ABS_8m38s.gcode`, slicer
+      retraction, 21 bands 0.0–2.0 mm. Only the 0.0 band (Z 0.2–1.4) strung; clean from
+      0.1 mm up. Chosen **0.5 mm @ 35 mm/s** for margin. Micro-hairs (< 0.1 mm, 2–5 mm
+      long) in every band, retraction-independent: that file travelled at 120 mm/s
+      ("Default Setting") with wipe off; re-judge on a real part with the `(repo)`
+      process (travel 350, wipe on) before blaming moisture.
+      Order and method: [`FILAMENT_CALIBRATION.md`](FILAMENT_CALIBRATION.md).
+      Write each result here and into the preset.
 - [ ] Cooling and layer times
 - [ ] Retraction
 - [ ] Infill/perimeter overlap

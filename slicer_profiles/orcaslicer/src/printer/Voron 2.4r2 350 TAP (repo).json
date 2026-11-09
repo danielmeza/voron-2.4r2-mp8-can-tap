@@ -1,0 +1,82 @@
+{
+	"deretraction_speed": [
+		"35"
+	],
+	"emit_machine_limits_to_gcode": "0",
+	"from": "User",
+	"host_type": "moonraker",
+	"inherits": "Voron 2.4 350 0.4 nozzle",
+	"machine_max_acceleration_extruding": [
+		"5700",
+		"5700"
+	],
+	"machine_max_acceleration_retracting": [
+		"5700",
+		"5700"
+	],
+	"machine_max_acceleration_travel": [
+		"5700",
+		"5700"
+	],
+	"machine_max_acceleration_x": [
+		"5700",
+		"5700"
+	],
+	"machine_max_acceleration_y": [
+		"5700",
+		"5700"
+	],
+	"machine_max_acceleration_z": [
+		"350",
+		"350"
+	],
+	"machine_max_speed_x": [
+		"400",
+		"400"
+	],
+	"machine_max_speed_y": [
+		"400",
+		"400"
+	],
+	"machine_max_speed_z": [
+		"20",
+		"20"
+	],
+	"machine_start_gcode": "PRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer_single] CHAMBER=[chamber_temperature]",
+	"name": "Voron 2.4r2 350 TAP (repo)",
+	"nozzle_type": [
+		"brass"
+	],
+	"print_host": "voron.local",
+	"printable_height": "300",
+	"printer_extruder_id": [
+		"1"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"printer_settings_id": "Voron 2.4r2 350 TAP (repo)",
+	"retract_lift_above": [
+		"0.3"
+	],
+	"retract_restart_extra": [
+		"0.05"
+	],
+	"retraction_length": [
+		"0.75"
+	],
+	"retraction_speed": [
+		"35"
+	],
+	"single_extruder_multi_material": "0",
+	"time_cost": "440",
+	"use_firmware_retraction": "0",
+	"version": "2.4.0.2",
+	"wipe": [
+		"1"
+	],
+	"z_hop": [
+		"0.2"
+	],
+	"machine_end_gcode": "PRINT_END"
+}

@@ -3,8 +3,10 @@
 
 That checklist is currently done by eye. This automates the objective part: do
 the required commands appear, are PRINT_START's placeholders resolved to real
-numbers, and does nothing heat the machine before PRINT_START (which would
-defeat the soak-gate/QGL/mesh sequencing PRINT_START owns).
+numbers, does the file use exactly one retraction method (slicer G1 E- moves by
+default, or firmware G10/G11 when tuning live -- ADR-0021), and does nothing heat
+the machine before PRINT_START (which would defeat the soak-gate/QGL/mesh
+sequencing PRINT_START owns).
 
 Usage:    scripts/verify_slicer_gcode.py path/to/sliced.gcode
 Selftest: scripts/verify_slicer_gcode.py --selftest
@@ -15,10 +17,13 @@ import re
 import sys
 
 REQUIRED_ANYWHERE = {
-    "G10": r"^\s*G10\b",
-    "G11": r"^\s*G11\b",
     "EXCLUDE_OBJECT_DEFINE": r"^\s*EXCLUDE_OBJECT_DEFINE\b",
 }
+# Retraction: the machine keeps BOTH mechanisms (ADR-0021). Slicer retraction
+# (G1 E-... moves, default) or firmware retraction (G10/G11, for live tuning) --
+# a file must use exactly one of them.
+FW_RETRACT_RE = re.compile(r"^\s*G1[01]\b")
+SLICER_RETRACT_RE = re.compile(r"^\s*G1\s+(?:F[\d.]+\s+)?E-")
 # Either satisfies the "layer progress in the UI" requirement.
 PROGRESS_RE = re.compile(r"^\s*(SET_PRINT_STATS_INFO|M73)\b")
 # Per-feature acceleration. A Marlin-flavoured slicer emits M204; one set to
@@ -38,6 +43,8 @@ def check(lines):
     patterns = {name: re.compile(p) for name, p in REQUIRED_ANYWHERE.items()}
     progress_found = False
     accel_found = False
+    fw_retracts = 0
+    slicer_retracts = 0
     print_start_line = None
     heating_before_start = []
 
@@ -52,6 +59,10 @@ def check(lines):
                 found[name] = True
         if PROGRESS_RE.match(line):
             progress_found = True
+        if FW_RETRACT_RE.match(line):
+            fw_retracts += 1
+        elif SLICER_RETRACT_RE.match(line):
+            slicer_retracts += 1
         if ACCEL_RE.match(line):
             accel_found = True
 
@@ -78,6 +89,13 @@ def check(lines):
     for name, ok in found.items():
         if not ok:
             failures.append(f"{name} never appears -- checklist requires it")
+    if fw_retracts and slicer_retracts:
+        failures.append(
+            f"both retraction methods present ({fw_retracts} G10/G11 and "
+            f"{slicer_retracts} G1 E- moves) -- a file must use exactly one (ADR-0021)"
+        )
+    elif not fw_retracts and not slicer_retracts:
+        failures.append("no retraction at all (neither G10/G11 nor G1 E- moves)")
     if not progress_found:
         failures.append("neither SET_PRINT_STATS_INFO nor M73 appears")
     if not accel_found:
@@ -127,10 +145,19 @@ def selftest():
     failures = check(bad_heat_order)
     assert any("before PRINT_START" in f for f in failures), failures
 
+    # Slicer retraction (the default since ADR-0021): G1 E- moves instead of G10/G11.
+    good_slicer = [ln for ln in good if ln.strip() not in ("G10", "G11")]
+    good_slicer.insert(5, "G1 E-.75 F2100\n")
+    good_slicer.insert(7, "G1 E.8 F2100\n")
+    assert check(good_slicer) == [], check(good_slicer)
+
+    both = good + ["G1 E-.75 F2100\n"]
+    failures = check(both)
+    assert any("both retraction methods" in f for f in failures), failures
+
     missing = ["PRINT_START EXTRUDER=230 BED=100\n"]
     failures = check(missing)
-    assert any("G10" in f for f in failures), failures
-    assert any("G11" in f for f in failures), failures
+    assert any("no retraction at all" in f for f in failures), failures
 
     print("selftest ok")
 

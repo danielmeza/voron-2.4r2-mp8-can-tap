@@ -156,9 +156,34 @@ went down before it could be confirmed, so which of the two was sufficient is un
 try `FIRMWARE_RESTART` first next time, it is the cheaper test and distinguishes the two
 cases.
 
-**Not yet recurring.** One event. If it happens again, that changes it from an anomaly
-to a pattern worth chasing (marginal toolhead CAN connector, 24 V supply sag, or an
-RP2040 firmware hang are the candidates, in that order of likelihood on a Voron).
+**Not yet recurring** (as of 2026-07-30). One event. If it happens again, that changes it
+from an anomaly to a pattern worth chasing (marginal toolhead CAN connector, 24 V supply
+sag, or an RP2040 firmware hang are the candidates, in that order of likelihood on a Voron).
+
+## Incident 2026-09-20 — `Timer too close` on the EBB at 78 °C, 2 h 17 min into ABS
+
+A **different profile** from the July event, recorded so the two are not conflated:
+
+| Signal | 2026-07-30 (idle hang) | 2026-09-20 (hot, printing) |
+|---|---|---|
+| Shutdown message | `Lost communication with MCU 'EBB'` | `MCU 'EBB' shutdown: Timer too close` |
+| EBB `rx_error` | — | 0 → **11 049** in ~2 min |
+| EBB after the event | sequence counters frozen (hung) | still answering, thermistor updating |
+| EBB temp | 56.7 °C | **78.5 °C** peak, chamber 46.6 °C |
+| host `can0` bus counters | all zero | all zero |
+| bridge (MP8) | unaffected | `is discarding!` once, then recovered |
+| machine state | idle ~20 min | printing, 65 tx_retries/s (normal under motion) |
+
+The user reports the same shutdown on several earlier long prints. Evidence, cause and
+the fix (a fan on the board's IND/FAN header, `[temperature_fan EBB]`) are in
+[ADR-0020](adr/0020-cool-the-toolhead-board.md). Recovery this time: `FIRMWARE_RESTART`
+should suffice, since the node never stopped answering.
+
+## IND/FAN header (on the SB2209 itself, not the SB0000)
+
+Three pins next to the endstop header: **VIN · GND · GPIO6**, with a 2-position jumper
+labelled IND / FAN. In the FAN position GPIO6 switches the load, so a fan wired here is
+a normal Klipper fan pin (`EBB:BOARD_FAN` alias = gpio6). Power is VIN, i.e. **24 V**.
 
 ⚠️ **TAP is on this board and is the only Z endstop.** After any EBB recovery,
 `QUERY_PROBE` before any `G28 Z` — see `CLAUDE.md` Rule 5.

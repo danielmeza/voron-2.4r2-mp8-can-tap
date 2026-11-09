@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Creality Hyper Series ABS, starting values for the Voron 2.4r2 350 (Dragon HF, CW2).
+     Temperatures from the user's temperature tower (230 best); flow, cooling and layer-time
+     limits from Creality's own OrcaSlicer presets (10-60 %, 12 s). Flow 0.903 measured
+     2026-09-22: Orca Flow Rate pass 1 (0.97, -5 -> 0.9215) then pass 2 (-2 -> 0.903), 230 C.
+     Retraction 0.5 mm @ 35 (tower 2026-09-24: 0.0 strung, clean from 0.1 up; 0.5 keeps margin).
+     Pressure advance 0.036 (PA Pattern 2026-09-24) is not a Cura material field: set it in
+     the Voron machine's Klipper settings plugin per material, or SET_PRESSURE_ADVANCE in the
+     filament start gcode.
+     Calibrate flow, PA and retraction before trusting them: docs/TUNING_PLAN.md.
+     Install: python3 scripts/install_slicer_presets.py -->
+<fdmmaterial xmlns="http://www.ultimaker.com/material" xmlns:cura="http://www.ultimaker.com/cura" version="1.3">
+  <metadata>
+    <name>
+      <brand>Creality</brand>
+      <material>ABS</material>
+      <color>Generic</color>
+      <label>Creality Hyper ABS (repo)</label>
+    </name>
+    <GUID>8f4165aa-aa81-4a0f-a1ce-69999d88d5f0</GUID>
+    <version>1</version>
+    <color_code>#8e9089</color_code>
+    <description>Creality Hyper Series ABS. High-speed ABS, HDT 80 C. Starting values for the Voron 2.4r2 350; calibrate flow, PA and retraction.</description>
+    <adhesion_info>Enclosed chamber at 50 C, bed 100 C first layer / 95 C after, brim 5 mm on large parts.</adhesion_info>
+  </metadata>
+  <properties>
+    <density>1.08</density>
+    <diameter>1.75</diameter>
+    <weight>1000</weight>
+  </properties>
+  <settings>
+    <setting key="print temperature">230</setting>
+    <setting key="heated bed temperature">95</setting>
+    <setting key="build volume temperature">50</setting>
+    <setting key="standby temperature">150</setting>
+    <setting key="print cooling">10</setting>
+    <setting key="retraction amount">0.5</setting>
+    <setting key="retraction speed">35</setting>
+    <setting key="adhesion tendency">0</setting>
+    <setting key="surface energy">100</setting>
+    <cura:setting key="material_print_temperature_layer_0">235</cura:setting>
+    <cura:setting key="material_bed_temperature_layer_0">100</cura:setting>
+    <cura:setting key="material_flow">90.3</cura:setting>
+    <cura:setting key="cool_fan_speed_max">60</cura:setting>
+    <cura:setting key="cool_min_layer_time">12</cura:setting>
+    <cura:setting key="cool_min_speed">20</cura:setting>
+    <cura:setting key="cool_fan_full_layer">3</cura:setting>
+  </settings>
+</fdmmaterial>
