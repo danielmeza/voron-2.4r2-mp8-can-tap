@@ -48,6 +48,7 @@ the record, and this repo has already re-learned the same lesson twice without i
 | [0021](0021-slicer-retraction-by-default.md) | Retraction belongs to the slicer by default; firmware retraction stays for live tuning | Accepted |
 | [0022](0022-power-off-relay-on-ps-on.md) | Hold the PSU relay closed from boot; POWER_OFF cuts mains | Accepted; 5 V source revised 2026-11-10, FAN-topology scope corrected 2026-11-11 — see Revisions |
 | [0023](0023-fan5-four-wire-sunon.md) | FAN5 and FAN6 drive 4-wire SUNON fans with hardware PWM | Accepted; header topology corrected 2026-11-11 — see Revisions |
+| [0024](0024-sfs-v2-runout-and-jam.md) | The SFS V2.0 drives a runout switch and a jam encoder, alongside the EBB sensor | Accepted 2026-11-11 |
 
 ## Why these exist
 
