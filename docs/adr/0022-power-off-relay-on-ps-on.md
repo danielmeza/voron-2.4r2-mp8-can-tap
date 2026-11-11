@@ -179,3 +179,27 @@ holds the pin.
 
 *Also measured in the same session:* `POWER_OFF` takes the pin 1.0 → 0.0 as intended, and
 `[output_pin psu_relay_5v]` (FAN4) holds 1.0 from boot with no help.
+
+**2026-11-11 — FAN4 did not hold the module in practice; the 5V moves to the 5V-DET
+header.** With `[output_pin psu_relay_5v]` reporting 1.0 and `PS_ON` at 1.0, the module
+still dropped the relay a few seconds after boot. The owner then moved the module's `5V IN`
+to the board's **`5V-DET` header** (`PB10` / `GND` / `+5V`, permanently live as soon as the
+board is powered), and `[output_pin psu_relay_5v]` was deleted, releasing FAN4.
+
+*What this refutes:* that the FAN4 route was fixed once the MOSFET was held high. Holding
+the pin high was necessary and is not sufficient — whatever the header does with a load on
+it instead of a fan, the module did not stay alive on it. The measurement is the module's
+own behaviour, not the pin's reported value: `output_pin` reported 1.0 the whole time.
+
+*Also recorded here because it interacts with this decision:* the klippy log shows two
+`gcode_button` callbacks firing during startup and failing with `Printer is not ready`
+(`extras/gcode_button.py:46` → `gcode.CommandError`). Their macros therefore did not run,
+so they did not power anything off — but a button that fires at boot is one that can also
+fire while the printer is `ready`, and `POWER_OFF` now removes AC. If a spurious power-off
+is ever seen, suspect that button wiring first.
+
+*Left as is, deliberately:* `PS_ON` keeps `value: 1` **and** the `[delayed_gcode
+PSU_RELAY_ASSERT]` re-assert. With the delayed_gcode in place, `PS_ON` read 1.0 at `ready`
+and 4 s later on every restart of this session, with KlipperScreen running; with
+KlipperScreen frozen it also held. The zeroing seen before the delayed_gcode was added did
+not reproduce afterwards, so the re-assert stays until the cause is named.
