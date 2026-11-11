@@ -110,3 +110,35 @@ module's own power-loss detection if the 5 V really disappears.
 - Deploy: this is a config-only change. It is safe to sync before the module is fitted
   (an unconnected `PD14` drives nothing), but the polarity measurement above is the gate
   for connecting the control cable.
+
+## Revisions
+
+**2026-11-10 — the 5 V source moves back to FAN4.** The module's `5V IN` is now fed from
+the FAN4 header (`VF4` jumper on 5 V), with its low-side return held by
+`[output_pin psu_relay_5v]` on `MP8:FAN4` (`pwm: false`, `value: 1`, `shutdown_value: 1`)
+in the same `psu.cfg`. This reverses Decision item 2 ("never from a fan header") and
+adopts rejected alternative 1. Both are left above, unedited, because the reasoning still
+explains the failure that led here.
+
+*What forced it:* the first attempt did not merely fail to drive `PA4` — nothing claimed
+`PA4`. FAN4 had no section at all, so `FAN4_MOSFET` was never switched on, the module's
+`5V IN` never saw current, and the module dropped the relay a few seconds after boot. That
+is a **config gap**, not evidence that the header cannot supply the module, and the
+multimeter reading at `VF4` (5 V with the output off) is the same trap described in the
+FAN4 trap section above. With the pin asserted by config, the rail is present from the
+moment Klipper loads, and `shutdown_value: 1` keeps it present through an MCU shutdown.
+
+*What is still not proven:*
+
+- **The restart window.** For a `RESTART` or `FIRMWARE_RESTART`, the MCU re-initialises its
+  outputs and the pin is only re-asserted when the config loads. The module does not drop
+  the relay instantly — that delay is the same one the Consequences above count on after
+  `POWER_OFF` — so a sub-second gap is *expected* to be harmless, but it has **not** been
+  measured. A shutdown that outlasts the module's delay drops mains with Klipper's own log
+  on the machine that just lost power. Measure it before relying on remote restarts.
+- **A config error that removes or breaks this section** now cuts mains instead of leaving
+  the printer running. That is strictly worse than the always-on-header arrangement, and it
+  is the accepted cost of using the header the module was designed to attach to.
+- **FAN4 is consumed.** `MP8:FAN4` was otherwise unused (no section referenced it before
+  this change), so no fan lost its output — but that header can no longer be used for one.
+  FAN5 is now the SUNON's ([0023](0023-fan5-four-wire-sunon.md)); FAN6 is the last free one.
