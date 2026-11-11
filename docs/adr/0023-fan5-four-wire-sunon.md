@@ -261,3 +261,29 @@ between 45.6 °C and 59 °C across the tests, so the fan will cycle around the t
 And `shutdown_speed: 1.0` is only half a guarantee on a 4-wire fan: the Manta's PWM buffer
 is what would have to drive it, so an MCU that is truly dead may leave the fan wherever its
 own pull-up puts it.
+
+**2026-11-11 (later) — the manta fan got a floor and a lower target: PID instead of
+watermark.** The owner asked for a minimum of ~10 % (or ~1000 rpm) so the board is never
+left unventilated, and a target of 45 °C instead of 50.
+
+- **Why the controller had to change.** `min_speed` alone does not do it: Klipper's
+  `set_tf_speed()` short-circuits an exact `0.0` (`if value <= 0.: value = 0.`) before the
+  `min_speed` clamp, and `ControlBangBang` is precisely a 0-or-`max_speed` controller. So
+  `control: watermark` with `min_speed: 0.1` still stops the fan. `ControlPID` builds its
+  output as `max_speed - clamp(...)` and only floors it at `min_speed`, so it can hold a
+  minimum.
+- **Settings:** `target_temp: 45`, `control: pid`, `pid_Kp: 25` (≈ 0.1 speed per °C),
+  `pid_Ki: 0.02`, `pid_Kd: 0`, `min_speed: 0.1`, `max_speed: 1.0`, and `off_below`
+  removed — at `off_below: 0.1` a 0.1 command would have been zeroed, cancelling the floor.
+- **Measured over 60 s:** 47.7 °C → speed 1.00 / 4129 rpm; 45.1 °C → 1.00 / 4105 rpm;
+  44.7 °C → 0.96 / 4012; 43.2 °C → 0.83 / 3604; 42.8 °C → 0.74 / 3413. Monotonic, no
+  visible oscillation, and the fan pulls the host down (47.7 → 42.8 °C) as it slows.
+
+*Consequence worth knowing before trusting the floor:* the host idles **above** 45 °C, so
+with this target the fan sits near 100 % most of the time and the 10 % floor is only
+reached about 10 °C below target. If "quiet when idle, 10 % floor, ramp when hot" is what
+is wanted, the target has to move above the idle temperature (~55–60 °C) rather than the
+floor moving up.
+
+*And the floor's actual speed:* 10 % is ~550 rpm at `tachometer_ppr: 4`, not 1000. Roughly
+18–20 % would be needed for 1000 rpm — the duty, not the controller, decides that.
