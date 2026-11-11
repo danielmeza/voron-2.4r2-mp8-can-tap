@@ -46,6 +46,7 @@ the record, and this repo has already re-learned the same lesson twice without i
 | [0019](0019-cold-start-qgl-waits-for-probe-temp.md) | Cold start: wait for probe temperature before the first QGL | Accepted |
 | [0020](0020-cool-the-toolhead-board.md) | Cool the toolhead board instead of lowering the chamber | Accepted |
 | [0021](0021-slicer-retraction-by-default.md) | Retraction belongs to the slicer by default; firmware retraction stays for live tuning | Accepted |
+| [0022](0022-power-off-relay-on-ps-on.md) | Hold the PSU relay closed from boot; POWER_OFF cuts mains | Accepted |
 
 ## Why these exist
 
