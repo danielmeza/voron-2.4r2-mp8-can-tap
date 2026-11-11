@@ -1,169 +1,223 @@
-# 0023 — FAN5 drives a 4-wire SUNON on its own section, with the tach wired
+# 0023 — FAN5 and FAN6 drive 4-wire SUNON fans with hardware PWM
 
-**Status:** Accepted · 2026-11-10 · config in the repo, two bench checks still open
+**Status:** Accepted 2026-11-10, corrected 2026-11-11 (see Revisions) · config in the
+repo, four open items below
 
 ## Context
 
-A **SUNON MF60101V1-1Q03C-S99** was fitted on FAN5 and has no config section yet. Its
-datasheet numbers:
+Two **SUNON** fans are fitted on the two headers this board reserves for 4-wire fans:
 
-| Spec | Value |
+| Header | Fan | Supply | Speed | Wires |
+|---|---|---|---|---|
+| FAN5 | **MF60101V1-1Q03C-S99**, 60 × 60 mm | 12 V, 1.46 W | 800–4000 rpm | 4 |
+| FAN6 | turbine-type **MagLev**, model not recorded yet | unknown — confirm 12 V | unknown | 4 |
+
+The datasheet lead colours are the reason this record exists. On the
+MF60101V1-1Q03C-S99 they are **BLUE = PWM, YELLOW = FG (tachometer), RED = +,
+BLACK = −**, and there is no green lead on that model — the fan on FAN6 is the one
+whose leads are **green = PWM, yellow = FG**.
+
+### FAN5 and FAN6 are 4-pin headers; FAN0–FAN4 are not
+
+The board's own pinout labels the fan headers asymmetrically, and the asymmetry is the
+whole finding:
+
+| Header | Labels on the connector |
 |---|---|
-| Frame | 60 × 60 mm |
-| Rated voltage | 12 V |
-| Power | 1.46 W |
-| Wires | 4 — supply, GND, **PWM** speed control, **FG** tachometer |
-| Speed range | 800–4000 rpm |
+| FAN0–FAN4 | **two** — the `VFx` rail and one MCU pin (`PF7`, `PF9`, `PF6`, `PF8`, `PA4`) |
+| FAN5 | **four** — `PA6` `PC2` `VF5` `GND` |
+| FAN6 | **four** — `PA2` `PC1` `VF6` `GND` |
 
-It is not interchangeable with the three fans already in
-`[multi_pin electronic_bay_fans]` (`MP8:FAN0`, `MP8:FAN1`, `MP8:HE0`), for two reasons:
+Four signals on a fan header is PWM out, tach in, rail and ground. Two signals is a
+switched return: those five headers switch the fan's **negative** side through a
+low-side N-MOSFET, which is the topology `[controller_fan electronic_bay]` and the other
+fan sections here are written for.
+
+### What is behind the FAN5/FAN6 pins, from schematic page 7
+
+The FAN5 connector (P18) contains **no transistor**. Its sub-circuit:
+
+| Pin | Path | MCU |
+|---|---|---|
+| 1 | R132 **10 Ω** in series → net `FAN5_MOSFET` | PWM from **PA6** |
+| 2 | R129 **10 kΩ** pull-up to `VFAN5` → `FAN5-TACH`, C64 **0.1 µF** to GND → EL357N optocoupler → `FAN5-DET` | **PC2** |
+| 3 | F9 **1 A** / 24 V fuse → `VFAN5` (jumper P17 selects 5 V / 12 V / VBB) | — |
+| 4 | GND, with D44 (SS2FH10HM3/H) | — |
+
+`FAN5_MOSFET` is a misleading net name, not a gate: on the same page it is the
+**output of U20, a 74HCT365 hex buffer powered from 5 V**, whose input is `FAN5_PWM`
+from MCU pin 42 (`PA6`), with a 10 kΩ pull-down on the buffered side. So the header
+carries a **5 V logic PWM signal through 10 Ω**, which is exactly what a 4-wire fan's
+PWM input expects. The `_MOSFET` nets on FAN0–FAN4 come off the same buffers and *then*
+drive a discrete MOSFET gate — that is the difference between the two header families.
+
+The FAN6 header (P20, silk "SysCooling") is the same shape with different reference
+numbers — R136 10 Ω, R135 10 kΩ, F10 1 A, D46, optocoupler E2 — and its nets are named
+`Cool_PWM`, `Cool-TACH`, `Cool-DET` and `VCool`, which is why the aliases in
+`config/printer/mcu/btt_manta_mp8_v2.0.cfg` are `FAN6_P1`/`FAN6_P2`.
+
+The tachometer is therefore **conditioned, not direct**: the fan's open-collector FG
+output is pulled up to the 12 V rail by R129, filtered by C64, and read through an
+EL357N optocoupler (LED fed from `VFAN5` through R125 1.2 kΩ; phototransistor with a
+4.7 kΩ pull-up to 3.3 V and 47 Ω into the MCU). Computed from those values, not
+measured: the filter is 10 kΩ × 0.1 µF ≈ **1 ms**, which is short against the 7.5 ms
+period of 2 pulses per revolution at 4000 rpm, but the `rpm` value this yields is a
+**presence/speed indicator, not a calibrated number**.
+
+PA6 appears in the MCU's own pin-mux text as `TIM3_CH1` (also `TIM13_CH1`), and PA2 as
+`TIM5_CH3` / `TIM2_CH3` / `TIM9_CH1` — the timer channels `hardware_pwm` needs.
+
+### Why neither fan joins the bay-fan group
+
+`[multi_pin electronic_bay_fans]` drives `MP8:FAN0`, `MP8:FAN1` and `MP8:HE0` with one
+duty cycle. Two reasons the SUNONs cannot be members:
 
 1. **A `multi_pin` group drives every member with one speed.** That is exactly right for
    the three electronic-bay fans, which are different fans doing one job (ADR-0001's
-   split table keeps the group in `fans.cfg`). A fan whose speed has to be set on its own
-   cannot share it.
-2. **A `multi_pin` member has no place for a tachometer.** `tachometer_pin` belongs to the
-   fan section that owns the pin, and `[multi_pin]` has no such key. Wiring the fan into
-   the group would discard the FG signal, which is the only feedback that proves the fan
-   is actually turning.
-
-The fan is currently wired with its **PWM wire (green) on PA6** and its **tach wire
-(yellow) on PC2**.
-
-### The FAN5 pin map, from the schematic
-
-Manta M8P v2.0 schematic, sheet 7 (`FAN5`):
-
-| Pin | Net / part | MCU |
-|---|---|---|
-| 1 | R132 10 Ω → `FAN5_MOSFET` gate | `PA6`, alias `FAN5_P1` |
-| 2 | `FAN5-TACH`, 10 kΩ pull-up to `VF5` | `PC2`, alias `FAN5_P2` |
-| 3 | F9 1 A fuse → `VF5` rail (jumper-selected 24/12/5 V) | — |
-| 4 | GND (with D44, C64) | — |
-
-Two consequences follow directly from that table, and both matter here:
-
-- **Pin 1 is the gate of the low-side N-MOSFET**, not a dedicated 4-wire PWM input. The
-  header's positive pin is the jumper-selected rail, permanently live; the *return* is
-  what the MOSFET switches. This is the same topology as every other fan header on this
-  board, and it is why every fan section here either sets `cycle_time: 0.01` or leaves
-  Klipper's own 0.010 default — 100 Hz software PWM, never `hardware_pwm`.
-- **Pin 2 is a tachometer input**, not a second power pin. The 10 kΩ pull-up to `VF5`
-  confirms it: it is an open-collector/open-drain FG output being sensed, not a supply.
-
-`config/printer/mcu/btt_manta_mp8_v2.0.cfg` already carries both aliases
-(`FAN5_P1=PA6`, `FAN5_P2=PC2`), and no other section in `config/printer/` claims either
-pin or `FAN4`/`PA4`.
+   split table keeps the group in `fans.cfg`). A fan whose speed has to be set on its
+   own cannot share it.
+2. **A `multi_pin` member has no place for a tachometer.** `tachometer_pin` belongs to
+   the fan section that owns the pin, and `[multi_pin]` has no such key. Wiring a fan
+   into the group would discard the FG signal, which is the only feedback that proves
+   the fan is actually turning.
 
 ## Decision
 
-**Give the SUNON its own `[fan_generic]` section in
-`config/printer/electronic_bay/fans.cfg`, driven the way this board drives fans.**
+**Two `[fan_generic]` sections in `config/printer/electronic_bay/fans.cfg`, each driving
+its header's PWM input with hardware PWM at 25 kHz and reading its tach:**
 
 ```ini
 [fan_generic Sunon]
 pin: MP8:FAN5_P1
-cycle_time: 0.01
-kick_start_time: 0.5
+hardware_pwm: true
+cycle_time: 0.00004
 off_below: 0.1
 shutdown_speed: 0.0
 tachometer_pin: MP8:FAN5_P2
 tachometer_ppr: 2
+
+[fan_generic SunonTurbine]
+pin: MP8:FAN6_P1
+hardware_pwm: true
+cycle_time: 0.00004
+off_below: 0.1
+shutdown_speed: 0.0
+tachometer_pin: MP8:FAN6_P2
+tachometer_ppr: 2
 ```
 
-- **`pin: MP8:FAN5_P1` is the low-side drive**, so `S` values are duty cycle of the fan's
-  *supply return* — the same control path as the bay fans, at 100 Hz.
+- **`hardware_pwm: true` with `cycle_time: 0.00004`** is 25 kHz, the frequency the
+  4-wire PWM interface is specified for, and it is above the audible band. It is
+  achievable only on the timer channel, not by bit-banging the pin.
 - **`tachometer_ppr: 2`** takes the SUNON's two FG pulses per revolution as the
   revolution count, which is what `tachometer_ppr` measures (pulses per *revolution*,
-  not per electrical cycle). The reported `rpm` is therefore trustworthy only as a
-  presence/speed indicator, not a calibrated number.
-- **`shutdown_speed: 0.0`** means an MCU shutdown leaves this fan off instead of latching
-  the last duty. That follows the bay and chamber fans (`[controller_fan electronic_bay]`,
-  `[temperature_fan chamber]`, both `shutdown_speed: 0.0`). The deliberate exception on
-  this machine is the hotend's `[heater_fan hotend_fan]` at `shutdown_speed: 1`: the
-  heatsink fan must keep running when the hotend may still be hot, and that is a different
-  job from this one.
+  not per electrical cycle).
+- **`off_below: 0.1`** writes 0 below a 10 % request rather than a duty that a 4-wire
+  input may ignore.
+- **`shutdown_speed: 0.0`** means an MCU shutdown drops the PWM input low instead of
+  latching the last duty. That follows the bay and chamber fans
+  (`[controller_fan electronic_bay]`, `[temperature_fan chamber]`, both
+  `shutdown_speed: 0.0`). The deliberate exception on this machine is the hotend's
+  `[heater_fan hotend_fan]` at `shutdown_speed: 1`.
+- **No `kick_start_time`.** A 4-wire fan's electronics are powered from the rail
+  continuously; there is no stalled rotor to break away from, so the kick is a 2-wire
+  workaround with no job here.
 
-### Open item — the panel connector is not a 4-wire PWM input (must be measured)
+## Open items
 
-Pin 1 is a **switched low-side drive**. A 4-wire fan's dedicated PWM input was designed
-to be fed by a logic-level, high-impedance PWM source referenced to the fan's own GND;
-this header chops the fan's supply return instead. Those are not the same thing, and
-which one the fan tolerates is a property of the fan, not of the schematic. Two bench
-tests decide it. **Record both results in Revisions below; until they exist, the config
-and the hardware are not known to agree.**
+Each of these needs a measurement, not an argument. **Record the result in Revisions
+below; until then the config and the hardware are not known to agree.**
 
-1. **Is the fan's control electronics independently powered?** With only `+12 V` and
-   `GND` connected — PWM and tach wires off — power the fan.
-   - *Spins at full speed* → the fan's electronics run off the supply rail, its PWM input
-     is a real logic input, and pin 1's low-side switching would have to be replaced by a
-     genuine PWM source for speed control (a spare MCU pin with `hardware_pwm`, or an
-     external driver). The section below would then be controlling the fan's supply and
-     not its speed.
-   - *Does not spin* → the fan's electronics are fed through the PWM input, the header's
-     switched return **is** the control path, and this section is correct as written.
-
-2. **Does `SET_FAN_SPEED` actually change the speed?** With the fan fully wired, run
-   `SET_FAN_SPEED FAN=Sunon SPEED=0.5` and read `rpm` from
-   `printer["fan_generic Sunon"]` (Mainsail's fan panel, or a `QUERY_FAN_SPEED`-style
-   macro). Repeat at `SPEED=1.0`.
-   - *rpm changes with the command* → the duty cycle is reaching the fan's control, and
-     the wiring assumption holds.
-   - *rpm is reported but ignores the command* → the PWM wire is loading the gate net.
-     On this header pin 1 is the MOSFET's gate behind R132, so whatever the fan's PWM
-     input pulls that node to also drives the gate: the MCU's duty cycle and the fan's own
-     pull-up fight over one net, and the fan can settle at a speed the firmware never
-     asked for. **Disconnect the PWM wire and keep the tach**, then decide between running
-     the fan at full speed or moving the PWM wire to a real PWM source with the bench
-     evidence in hand. Do not leave a wire connected to a node the schematic says is a
-     gate.
+1. **PWM polarity and presence.** With each fan wired and turning, read
+   `printer["fan_generic Sunon"].rpm` (and `SunonTurbine`) at `SPEED=1.0`, `0.5` and
+   `0.0`. `rpm` must fall as the speed falls. **If a lower speed gives a *higher* rpm,
+   the drive is inverted** and the pin needs the `!` prefix (`MP8:!FAN5_P1`).
+   `SPEED=0.0` is expected to leave the fan idling at its minimum (~800 rpm on the
+   FAN5 fan) rather than stopping, because the header cannot switch the rail.
+2. **Whether the timer claim holds in Klipper.** The pin-mux list says PA6 is
+   `TIM3_CH1` and PA2 is `TIM2_CH3`/`TIM5_CH3`; that the STM32H723 build Klipper uses
+   accepts `hardware_pwm` on both is asserted from the board document, **not** proven
+   by a config load. The first `RESTART` that loads this file is that proof: a bad
+   timer shows up as a config error, with the fan unreachable until it is fixed.
+3. **Nothing drives these fans.** They are `fan_generic` sections with no consumer:
+   nothing in `PRINT_START`/`PRINT_END` sets their speed, so each runs at whatever was
+   last commanded — including across prints. Whether they should follow the bed heater,
+   the chamber, or a slicer command is a separate decision with its own record.
+4. **FAN6 is unconfirmed hardware.** Its model number is not recorded, so its rated
+   voltage, its minimum speed and its `tachometer_ppr` are unknown; the `VF6` jumper on
+   P19 selects 5 V / 12 V / VBB and its position has not been read off the board.
+   Do not run `SunonTurbine` until both are confirmed.
 
 ## Rejected alternatives
 
-- **`hardware_pwm: true` with `cycle_time: 0.00004`.** That is the correct setting only
-  for a genuine 4-wire PWM input carrying a logic signal. Applied to this header it chops
-  the fan's **supply** at 25 kHz: peak currents through the 10 Ω gate resistor and the
-  header's FET, extra EMI on a wire run that leaves the board, and supply ripple, all for
-  a control path that is not the one the connector provides. The 10 ms `cycle_time` of
-  every other fan section here is the evidence for what the hardware expects.
-- **Put the fan on the idle part of `multi_pin electronic_bay_fans`.** The group already
-  drives three fans with one duty cycle; adding the SUNON would tie a 12 V 4000 rpm fan
-  to the bay fans' `fan_speed: 0.6` (and to their `heater: heater_bed` trigger), and would
-  throw away the tachometer, because `[multi_pin]` has no `tachometer_pin`. Two
-  independent jobs, one control knob — the coupling ADR-0001 exists to prevent.
-- **Leave the fan unconfigured.** The fan is on a live 12 V rail with its return switched;
-  unconfigured, the MOSFET stays off and the fan never runs. Worse, the next reader sees a
-  populated connector, no section, and cannot tell whether that is a choice.
-- **Wire the tach to a spare endstop or thermistor input.** Those inputs have different
-  pull-ups and filters, and the fan's FG net is already on PC2 with a 10 kΩ pull-up to
-  `VF5` designed for it. Using an endstop input would put a fan's signal on a net the
-  safety logic scans.
+- **Software PWM at 100 Hz (`cycle_time: 0.01`), the value the other fan sections use.**
+  A 4-wire fan's PWM input is specified at 25 kHz; a 10 ms period is two orders of
+  magnitude below that, is audible as motor whine, and asks the fan to integrate a duty
+  its input filter was not designed for. The 100 Hz sections keep their value because
+  they switch a **supply return** through a MOSFET, which is a different job.
+- **`[temperature_fan]` / `[controller_fan]` automatic control.** Neither fan is tied
+  to a heater or to a sensor: a `temperature_fan` would need a target temperature that
+  no measurement justifies, and it *runs the fan above* its target — the exact inversion
+  that made the exhaust fan fight the heat soak (ADR-0003) and that the chamber section
+  had to be re-documented for.
+- **Joining `multi_pin electronic_bay_fans`.** That group is `FAN0`/`FAN1`/`HE0`, three
+  2-pin switched returns on one knob; the SUNONs are 4-wire fans on their own headers.
+  Joining would lose both the tach and the independent speed, and give a 4000 rpm fan
+  the bay fans' `fan_speed: 0.6` and `heater: heater_bed` trigger.
 
 ## Consequences
 
-- **`off_below: 0.1`** keeps a 10 % request from stalling the fan: below that duty the
-  output is switched off entirely rather than left at a duty that may not start the rotor.
-  `kick_start_time: 0.5` gives a cold start the half second it needs to break away.
-- **`shutdown_speed: 0.0`** means an MCU shutdown stops the fan instead of freezing it at
-  the last duty cycle. A fan that must keep running through a shutdown needs a
-  `heater_fan`-style section, like the hotend's — not this one.
-- **The tach only reports while Klipper polls it.** `rpm` is a value Klipper samples, not a
-  hardware latch: with Klipper not running (or the MCU in shutdown) the status has no
-  meaning, and a stopped fan shows `0.0` only once a poll has seen no pulses.
-- **The fan is not part of any cooling strategy yet.** It is a `fan_generic` with no macro
-  driving it: nothing starts it at print start, and nothing stops it at print end. Slicer
-  gcode or a `PRINT_START`/`PRINT_END` edit would have to be a separate decision with its
-  own record — this one only makes the fan controllable and observable.
-- **Fan headers are now nearly all spoken for.** Counting the sections that claim one:
-  FAN0, FAN1 and HE0 in `[multi_pin electronic_bay_fans]`, FAN2 for the Nevermore, FAN3
-  for the chamber exhaust, FAN4 held by `psu_relay_5v` from boot (see
-  [0022](0022-power-off-relay-on-ps-on.md)) and FAN5 for this fan. **FAN6 (`PA2`, tach
-  `PC1`) is the only one left**, so the next fan needs a record that says what gave way.
+- **The header cannot stop these fans.** The rail is permanently live and only the PWM
+  input is switched, so `SPEED=0` is the fan's minimum speed, not off, and `M107`-style
+  "fan off" semantics do not apply. Stopping the fan means cutting the rail, which this
+  header cannot do; the PSU relay ([0022](0022-power-off-relay-on-ps-on.md)) is the only
+  thing that does.
+- **Two 25 kHz hardware timers are now in use.** PA6 (`TIM3_CH1`) and PA2
+  (`TIM2_CH3`/`TIM5_CH3`) can each serve one PWM output; a future fan or a laser-style
+  PWM consumer on those pins has to displace a fan, not share it.
+- **`rpm` is a conditioned signal.** FG arrives through an optocoupler after a 10 kΩ ×
+  0.1 µF filter, so the number is good for "turning / not turning / roughly how fast",
+  and the tach only reports while Klipper polls it: with Klipper not running (or the MCU
+  in shutdown) the status has no meaning, and a stopped fan shows `0.0` only once a poll
+  has seen no pulses.
+- **`shutdown_speed: 0.0` is not "fan off" here** either: it drops the PWM input low,
+  which the 4-wire spec reads as minimum speed. A fan that must stop on shutdown would
+  have to switch the rail.
+- **All fan outputs are now spoken for.** Counting the sections that claim one: FAN0,
+  FAN1 and HE0 in `[multi_pin electronic_bay_fans]`, FAN2 for the Nevermore, FAN3 for
+  the chamber exhaust, FAN4 held by `psu_relay_5v` from boot (see
+  [0022](0022-power-off-relay-on-ps-on.md)), FAN5 for the SUNON and FAN6 for the
+  turbine. **The next fan needs a record that says what gave way.**
 
 ## Revisions
 
-None yet. The two bench checks in **Open item** above are unreported: no measurement of
-the fan's independent power-up, and no `SET_FAN_SPEED`/`rpm` reading. Add one dated entry
-here per result, with the number — "spins at full speed with PWM and tach disconnected" or
-"`SPEED=1.0` gave 3180 rpm, `SPEED=0.5` gave 1740 rpm" — because that evidence is what
-turns this section from plausible into correct.
+**2026-11-11 — the header topology in the 2026-11-10 body was wrong, and the decision
+changed with it.** The first version of this record asserted that "pin 1 is the gate of
+the low-side N-MOSFET … the same topology as every other fan header on this board", that
+the fan's "PWM wire (green)" was on PA6, and that `hardware_pwm` was the wrong choice for
+this header. All three were wrong, and they came from reading the net name `FAN5_MOSFET`
+as a transistor gate instead of checking the connector's own sub-circuit.
+
+*What forced it:*
+
+- **The pinout labels the headers asymmetrically.** FAN0–FAN4 carry two labels each
+  (`VFx` plus one MCU pin); FAN5 is `PA6 | PC2 | VF5 | GND` and FAN6 is
+  `PA2 | PC1 | VF6 | GND` — four signals, i.e. PWM, tach, rail, ground.
+- **Schematic page 7 has no transistor in the FAN5 block (P18).** Pin 1 goes through
+  R132 10 Ω to the buffered `FAN5_MOSFET` net, which is an output of the 5 V 74HCT365
+  (U20) fed by `FAN5_PWM` from PA6; pin 2 goes through R129 10 kΩ and an EL357N
+  optocoupler to `FAN5-DET` on PC2; pin 3 through a 1 A fuse to the jumper-selected
+  rail; pin 4 to GND. `FANx_MOSFET`-drives-a-gate is real on FAN0–FAN4 only.
+- **The supplied datasheet lists BLUE = PWM, YELLOW = FG, RED = +, BLACK = −** on the
+  MF60101V1-1Q03C-S99. There is no green lead on that model, so the old sentence about
+  the green PWM wire described the *other* fan, the turbine on FAN6.
+
+*What changed:* `cycle_time` 0.01 → 0.00004 with `hardware_pwm: true` (25 kHz on the
+fan's PWM input); `kick_start_time: 0.5` dropped; PC2/PC1 documented as tach inputs
+behind the optocoupler rather than direct FG; a second section added for the turbine on
+FAN6. The `[fan_generic]`-per-fan decision, `off_below`, `shutdown_speed` and
+`tachometer_ppr` are unchanged.
+
+*What is still not proven:* every item under **Open items** above — no `SET_FAN_SPEED`/
+`rpm` reading at three speeds, no config load exercising `hardware_pwm` on these two
+pins, and no confirmed model or jumper position for the FAN6 fan.

@@ -142,3 +142,23 @@ moment Klipper loads, and `shutdown_value: 1` keeps it present through an MCU sh
 - **FAN4 is consumed.** `MP8:FAN4` was otherwise unused (no section referenced it before
   this change), so no fan lost its output — but that header can no longer be used for one.
   FAN5 is now the SUNON's ([0023](0023-fan5-four-wire-sunon.md)); FAN6 is the last free one.
+
+**2026-11-11 — "every fan header" above means FAN0–FAN4, not FAN5/FAN6.** The body says
+"on this board **every** fan header's … return is the drain of a low-side N-MOSFET". That
+holds for FAN0–FAN4 and is wrong for the last two: FAN5 and FAN6 are **4-pin headers**
+(PWM out, tach in, rail, ground) with no transistor in their sub-circuit, which is why
+their fans are driven by a logic PWM into the fan, not by switching a supply return
+([0023](0023-fan5-four-wire-sunon.md) records the pinout labelling and the schematic
+evidence).
+
+*What forced it:* the board pinout labels FAN0–FAN4 with two signals each (`VFx` and one
+MCU pin) but FAN5 `PA6 | PC2 | VF5 | GND` and FAN6 `PA2 | PC1 | VF6 | GND`; schematic
+page 7 shows P18/P20 with a 10 Ω series resistor from their buffered PWM net and a 10 kΩ
+pull-up plus optocoupler on their tach net, and no MOSFET.
+
+*What this does not change:* the FAN4 trap, the measurement behind it, and the decision to
+hold `FAN4` with `[output_pin psu_relay_5v]`. `MP8:FAN4` is one of the five switched-return
+headers, so the failure it records is real. It also does not make a fan header a 5 V
+source: on FAN5/FAN6 the rail is live and the *PWM input* is what is switched, which is
+still not a supply for the relay module. FAN6 is no longer free — [0023](0023-fan5-four-wire-sunon.md)
+claims it for the second 4-wire fan.
