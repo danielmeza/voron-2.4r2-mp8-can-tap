@@ -96,3 +96,36 @@ Rejected alternatives:
    `filament_motion_sensor sfs_motion` state change while extruding 20 mm.
 3. Measure whether 2.88 mm is too tight on this machine, and revise this record if the
    shipped value changes.
+
+## Revisions
+
+**2026-11-11 — the EBB sensor is gone; the SFS pair is the only filament detection.**
+The decision above kept `[filament_motion_sensor filament_sensor]` on
+`EBB:FILAMENT_PROBE` and rejected "replace it with the SFS pair". That is reversed:
+
+- **It was never installed.** The toolhead's filament sensor needs a resistor that was
+  never fitted, which is why its `ENABLE` default was `0` — the sensor was armed by
+  nothing and caught nothing.
+- **One sensor is enough, and the SFS is the right one.** It sits outside the chamber
+  with room to open it and clear a jam mid-print, which the toolhead position does not
+  give.
+
+*What changed:*
+
+- `[filament_motion_sensor filament_sensor]` and the `[gcode_macro PRINT_FILAMENT_STATE]`
+  that printed its `last_query` are deleted with
+  `config/printer/stealburner/filament_runout.cfg` (recoverable from git if the EBB
+  sensor is ever fitted).
+- `[delayed_gcode DISABLEFILAMENTSENSOR]` in `printer/macros.cfg` is deleted; its job is
+  done by `SFS_DISABLE_AT_START` in `printer/filament/sfs_v2.cfg`.
+- The `SET_FILAMENT_SENSOR SENSOR=filament_sensor` calls in `PRINT_START`, `PRINT_END`,
+  `_USER_PAUSE`, `_USER_RESUME` and `_USER_CANCEL` are removed; the two SFS calls remain.
+- `variable_runout_sensor` now names **`filament_switch_sensor sfs_switch`**. It is not
+  decoration: `config/mainsail.cfg` reads `printer[client.runout_sensor].filament_detected`
+  to refuse a `RESUME` when no filament is detected, so pointing it at a deleted object
+  would have made every resume fail.
+
+*What this costs:* a jam in the last stretch before the nozzle is now only visible through
+the encoder at the spool. The SFS still catches it — it is the same "filament is not
+moving" measurement, just taken further upstream — but it will notice later, after the
+`detection_length` of slack plus the bowden path has been consumed.
