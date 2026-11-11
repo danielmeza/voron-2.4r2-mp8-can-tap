@@ -221,3 +221,43 @@ FAN6. The `[fan_generic]`-per-fan decision, `off_below`, `shutdown_speed` and
 *What is still not proven:* every item under **Open items** above — no `SET_FAN_SPEED`/
 `rpm` reading at three speeds, no config load exercising `hardware_pwm` on these two
 pins, and no confirmed model or jumper position for the FAN6 fan.
+
+**2026-11-11 — roles fixed, and the numbers this record left open.** The two fans are no
+longer plain `[fan_generic]` sections; each is now attached to the thing it exists for:
+
+- **FAN5 → `[controller_fan drivers]`**, the turbine over the stepper drivers:
+  `stepper: stepper_x, stepper_y, stepper_z, stepper_z1, stepper_z2, stepper_z3`,
+  `fan_speed: 1`, `idle_timeout: 120`. Measured: `FORCE_MOVE STEPPER=stepper_x
+  DISTANCE=1 VELOCITY=10` takes it 0 → 1.0 and 0 → **2901 rpm**, still **3508 rpm**
+  13 s later; it reads 0.0 when no stepper has moved since boot, which is the behaviour
+  `controller_fan` is chosen for.
+- **FAN6 → `[temperature_fan manta]`**, the auxiliary fan over the Manta and the CB1.
+
+*What forced the swap:* the owner corrected which header feeds which purpose (FAN5 =
+drivers, FAN6 = CPU/Manta). The first version of this change had them the other way round,
+and the config now follows the corrected mapping; the fan models stay as wired (the
+`MF60101V1-1Q03C-S99` on FAN5, the turbine on FAN6).
+
+*Sensor.* `sensor_type: temperature_host` — the CB1's `[temperature_sensor CB1]` is a
+`temperature_host`, `[mcu]` here is the Linux host and has no `ADC_TEMPERATURE`, and
+`temperature_combined` in this Klipper build requires `maximum_deviation` and
+`combination_method`. Two attempts failed and are recorded rather than quietly avoided:
+`sensor_mcu: CB1` → `Unknown pin chip name 'CB1'` (`CB1` is a `[board_pins]` group, not an
+mcu), and `sensor_type: temperature_combined` → `Option 'maximum_deviation' in section
+'temperature_fan manta' must be specified`.
+
+*Tachometer.* `tachometer_ppr` 4 on FAN5 is measured: with `ppr 2` it reported **7106 rpm at
+100 %**, above the 4000 rpm datasheet maximum, while `ppr 4` puts the same run at **3553 rpm
+at 100 %** and **818 rpm at 15 %**, against the datasheet's 800 rpm floor. The FAN6 fan
+keeps `ppr 2` because its model is still unrecorded.
+
+*PWM polarity.* Verified not inverted: measured with `ppr 2`, `SPEED` 0.0 / 0.15 / 0.5 /
+0.85 gave 0 / 1637 / 4543 / 6402 rpm, so `SPEED=0` really is stopped and the duty responds
+monotonically.
+
+*Still open.* The FAN6 fan's model, its voltage and the `VF6` jumper position are
+unconfirmed. `target_temp: 50` on the manta fan is a starting value — the host idled
+between 45.6 °C and 59 °C across the tests, so the fan will cycle around the threshold.
+And `shutdown_speed: 1.0` is only half a guarantee on a 4-wire fan: the Manta's PWM buffer
+is what would have to drive it, so an MCU that is truly dead may leave the fan wherever its
+own pull-up puts it.

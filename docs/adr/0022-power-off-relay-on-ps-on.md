@@ -162,3 +162,20 @@ headers, so the failure it records is real. It also does not make a fan header a
 source: on FAN5/FAN6 the rail is live and the *PWM input* is what is switched, which is
 still not a supply for the relay module. FAN6 is no longer free — [0023](0023-fan5-four-wire-sunon.md)
 claims it for the second 4-wire fan.
+
+**2026-11-11 — the pin does not stay high on its own; a re-assert was added.** Measured on
+the machine: after `RESTART`, `output_pin PS_ON` reads **1.0** while Klipper is in
+`startup` and **0.0 the moment it reaches `ready`**, reproduced with nothing in the
+Moonraker gcode store during the window. A `SET_PIN PIN=PS_ON VALUE=1` issued after
+`ready` then holds indefinitely (checked at +5 s, +20 s and +45 s), so the config gained
+`[delayed_gcode PSU_RELAY_ASSERT]` (`initial_duration: 2.0`) which re-asserts the pin.
+
+*What this does not establish:* the cause. Klipper's `output_pin` initialises
+`last_value` from `value:`, and the parsed section in `klippy.log` shows `value = 1`, so
+something writes 0 exactly at the ready transition. KlipperScreen was the suspect and is
+not proven: it was frozen with `SIGSTOP` for one attempt and that run was inconclusive.
+Until the cause is named, treat `value:` as insufficient — the `delayed_gcode` is what
+holds the pin.
+
+*Also measured in the same session:* `POWER_OFF` takes the pin 1.0 → 0.0 as intended, and
+`[output_pin psu_relay_5v]` (FAN4) holds 1.0 from boot with no help.
