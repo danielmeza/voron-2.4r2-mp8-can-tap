@@ -111,3 +111,24 @@ RP2040, while a low tach still reads as about 0.2 V. Config: `tachometer_pin: ^E
 `tachometer_ppr: 2`. The fan's model is unrecorded, and 2 is the common value. The reading
 means something only while the fan is on, and the watermark controller runs it at 0 or
 100 %. *Not yet verified:* the fan rewired as above, with an rpm reading at 100 %.
+
+### 2026-11-12 (later) — the tach goes to GPIO21 on the Probe connector instead; GPIO12 stays with the 4010
+
+*What changed:* the owner cannot use GPIO12. It sits on the SB0000 breakout, which is
+nearly impossible to reach in the toolhead, and its tach input is about to serve the
+4-wire 4010 fan. On the SB2209 itself the only free input left is **GPIO21**, pin 5
+(`PROBE`) of the 5-pin Probe connector. It was freed when the never-fitted filament sensor
+was removed in a9985af. TAP uses pin 3 (GPIO22) of the same connector, and the X endstop
+holds GPIO24.
+
+*Circuit (schematic page 1):* `PROBE` reaches GPIO21 through U13, a 74LVC2G17 Schmitt
+buffer powered at 3.3 V, whose inputs tolerate 5 V. Nothing pulls `PROBE` up. A 10 kΩ
+resistor therefore goes from pin 5 to pin 2 (+5 V). A `^` on the RP2040 pin would only
+pull the buffer's output. The Schottky diode stays, band toward the fan, and now protects
+the buffer instead of the RP2040.
+
+*Config:* `tachometer_pin: EBB:BOARD_FAN_TACH`, through a new alias
+`BOARD_FAN_TACH=PROBE1`, which replaces the dead `FILAMENT_PROBE` alias.
+
+*Rule 5 applies:* the wiring work shares a connector with TAP. Run `QUERY_PROBE` and
+trigger the probe by hand before any `G28 Z`.
