@@ -87,3 +87,27 @@ warnings, `QUERY_PROBE` open. With the board at 52.4 °C the fan output went to 
 lowering the target to 30 for 25 s changed the reading by only 0.07 °C, so the 25-second
 check says nothing about airflow yet. The real evidence is the next long print: the
 target in Consequences stands, board ≤ 60 °C with the chamber at 50 °C.
+
+### 2026-11-12 — the "GPIO6" pin is the fan's switched negative; the tach goes to GPIO12 through a diode
+
+*Correction to Consequences:* the line "VIN on the outer pin, GND in the middle" reads as
+"wire the fan between VIN and GND", and a fan wired that way runs at 100 % whatever
+Klipper does. Schematic page 2 ("Proximity Switch", P5/P6) shows the header as P5: pin 3
+DC_IN, pin 2 GND, pin 1 signal. The FAN/IND jumper P6 connects pin 1 either to the
+optocoupler input (IND) or to the drain of Q2, an ES3400 low-side MOSFET with D3 flyback
+to DC_IN (FAN). Q2's gate is the GPIO6 net. So in FAN position the fan goes **+ to VIN,
+− to the pin marked GPIO6**, and the middle GND pin is not used.
+
+*What showed it:* the owner had fitted a 3-wire 24 V fan with red on VIN, black on GND and
+the yellow tach on the GPIO6 pin. The fan ran all the time and hot. Q2 was switching
+nothing but the tach line.
+
+*Tach:* this header has only one MCU line, and in FAN position that line drives Q2. The
+fan's yellow wire therefore goes to GPIO12, which is pin 3 (`4W_Speed`) of the SB0000's
+4-wire header and the board's only tach input (hardware notes). It goes through a Schottky
+diode with the band toward the fan. Because the fan is switched on its negative, its ground
+floats toward 24 V while it is off, and so can its tach. The diode keeps that off the
+RP2040, while a low tach still reads as about 0.2 V. Config: `tachometer_pin: ^EBB:TACH`,
+`tachometer_ppr: 2`. The fan's model is unrecorded, and 2 is the common value. The reading
+means something only while the fan is on, and the watermark controller runs it at 0 or
+100 %. *Not yet verified:* the fan rewired as above, with an rpm reading at 100 %.
