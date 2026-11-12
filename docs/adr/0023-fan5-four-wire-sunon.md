@@ -287,3 +287,20 @@ floor moving up.
 
 *And the floor's actual speed:* 10 % is ~550 rpm at `tachometer_ppr: 4`, not 1000. Roughly
 18–20 % would be needed for 1000 rpm — the duty, not the controller, decides that.
+
+### 2026-11-12 — the manta fan's target moves from 45 °C to 55 °C, above the host's idle temperature
+
+*What forced it:* the previous entry's own measurements. The host idles between 45.6 °C and
+59 °C, and at 45.1–47.7 °C the fan read speed 1.00, so with a 45 °C target it never left
+100 %. That entry already named the fix: put the target above the idle temperature
+(55–60 °C), and leave the floor alone. The owner set `target_temp: 55`.
+
+*Correction to how the loop is described:* the config comment said "half speed around
+50 C, full at 55 C". That is the proportional term alone with an empty integral. With
+`pid_Ki: 0.02` the loop is PI. It holds the host at 55 °C, settles at the 10 % floor
+while the host stays below the target, and ramps up above it, with the integral pushing
+until 55 °C is back. The comment now says that.
+
+*Also corrected:* the "~550 rpm" floor came from FAN5's `ppr 4` measurements. FAN6 runs
+`tachometer_ppr: 2`, and its speed at 10 % has not been measured. The number was dropped
+from the comment until it is measured.
