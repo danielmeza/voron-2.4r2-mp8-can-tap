@@ -132,3 +132,18 @@ the buffer instead of the RP2040.
 
 *Rule 5 applies:* the wiring work shares a connector with TAP. Run `QUERY_PROBE` and
 trigger the probe by hand before any `G28 Z`.
+
+### 2026-11-12 (night) — the board fan is dead; its section is commented out until the replacement arrives
+
+The owner reports that the 3-wire fan smelled burnt and is damaged. They trace it to the
+first time its yellow tach wire was connected to the header's GPIO6 pin. The cause is not
+established beyond that report. The owner has ordered a replacement, a 2010 or 2007 24 V
+fan, being sourced together with a 4-wire 4010 for the hotend.
+
+*Change:* `[temperature_fan EBB]` is commented out, tach lines included, and the plain
+`[temperature_sensor EBB]` on gpio28 is back so the board reading stays visible. It is the
+same section this ADR replaced, with no min/max limits, so it adds no new shutdown path.
+
+*Consequence while the fan is out:* the board is uncooled again. The evidence in Context
+applies in full: 78.5 °C and `Timer too close` after 2 h 17 min of ABS, and a 77.6 °C peak
+with the cover open. Long hot-chamber prints are at risk until the fan is back.
