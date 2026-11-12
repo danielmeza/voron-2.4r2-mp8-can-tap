@@ -305,3 +305,39 @@ was read. The likely path: the screen's shutdown asks Moonraker to power off the
 and nothing on that path writes `PS_ON`. Klipper is simply stopped, and the Manta goes on
 holding PD14 high. Only the `POWER_OFF` macro drops the pin. *Open:* make a host poweroff
 drop `PS_ON` too, with the CB1 halted inside the module's 7.5 s window.
+
+### 2026-11-12 (evening) — a host poweroff releases the relay; POWER_OFF shuts the host down
+
+*What the logs showed.* KlipperScreen's "power off" at 10:20 and at 10:49 is a host
+poweroff. The journal reads "The system will power off now!" at 10:49:51.246. KlipperScreen's
+popup, `Failed to power off host: Call to PowerOff failed: There's already a shutdown or
+sleep operation in progress`, is its own second request losing to the first, and does no
+harm. Nothing on that path writes `PS_ON`, which is why mains stayed on. The
+`machine.device_power.off` → `Method not found` at 11:13:18 was sent by KlipperScreen's
+screensaver as it started, not by a person.
+
+*Decision (owner: "the relay should drop when Linux shuts down"):*
+
+- `system/psu-relay-poweroff.service` is a oneshot ordered `After=` `klipper.service` and
+  `moonraker.service`, so systemd stops it before them. Its `ExecStop`,
+  `/usr/local/bin/psu-relay-poweroff`, checks that a `poweroff.target` or `halt.target` job
+  is queued, which leaves a reboot alone. It then posts `_PSU_RELAY_RELEASE` to Moonraker.
+  That macro turns the heaters off and sets `PS_ON` to 0. Every route to a poweroff now
+  cuts mains: the screen, Mainsail, `systemctl poweroff`.
+- `POWER_OFF` no longer sets the pin. It turns off motors, heaters and the part fan, then
+  calls Moonraker's `shutdown_machine`. If it dropped the pin itself, the module's 7.5 s
+  clock would start before Linux had even begun to stop.
+
+*Timing, from the 10:49 shutdown:* the poweroff was announced at t0. Klipper was stopping
+at t0 + 1.2 s and stopped at t0 + 1.36 s. The journal's last line is at t0 + 3.5 s. The
+hook runs just before Klipper stops, so the cut lands at about t0 + 8.7 s, roughly 5 s
+after the last logged step.
+
+*Rejected:* a Moonraker `[power]` device on `PS_ON`. Switching it off cuts mains while
+Linux is still running. The screensaver also already calls `machine.device_power.off`, so
+a device tied to the relay would be one config line away from cutting mains whenever the
+screen blanks.
+
+*Not yet verified:* a real poweroff from the screen cutting mains, and the Manta keeping
+PD14 low while the CB1 halts. If the halt reset the STM32, `CONFIG_INITIAL_PINS` would raise
+PD14 again and mains would stay on.

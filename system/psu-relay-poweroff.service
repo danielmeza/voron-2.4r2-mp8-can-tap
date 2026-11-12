@@ -1,0 +1,20 @@
+## Releases the PSU relay (PS_ON) when the host powers off.  See
+## docs/adr/0022-power-off-relay-on-ps-on.md.  Install on the CB1 as root:
+##   install -m 755 psu-relay-poweroff.sh /usr/local/bin/psu-relay-poweroff
+##   install -m 644 psu-relay-poweroff.service /etc/systemd/system/
+##   systemctl daemon-reload && systemctl enable --now psu-relay-poweroff.service
+## Ordered After= Klipper and Moonraker, so at shutdown systemd stops this unit
+## first and its ExecStop still finds both running.
+[Unit]
+Description=Release the PSU relay (PS_ON) when the host powers off
+After=klipper.service moonraker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+ExecStop=/usr/local/bin/psu-relay-poweroff
+TimeoutStopSec=8
+
+[Install]
+WantedBy=multi-user.target

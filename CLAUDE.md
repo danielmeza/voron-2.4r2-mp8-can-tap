@@ -81,6 +81,7 @@ revision maps every split. A new key goes in the file of its concern, nowhere el
 | `docs/FILAMENT_CALIBRATION.md` | per-filament calibration order and where each result goes |
 | `firmware/` | per-board Klipper `.config` files (the machine keeps only the last one) |
 | `scripts/` | config linter, MCU firmware updater, slicer gcode verifier, Orca bundle builder |
+| `system/` | systemd units and scripts installed on the CB1 itself (install steps in each unit's header) |
 | `slicer_profiles/` | Cura import profile + OrcaSlicer manual-entry table, from `docs/SLICER_SETUP.md` |
 
 ## Machine facts worth knowing
