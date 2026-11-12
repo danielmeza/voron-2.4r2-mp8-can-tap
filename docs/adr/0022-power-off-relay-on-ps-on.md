@@ -341,3 +341,28 @@ screen blanks.
 *Not yet verified:* a real poweroff from the screen cutting mains, and the Manta keeping
 PD14 low while the CB1 halts. If the halt reset the STM32, `CONFIG_INITIAL_PINS` would raise
 PD14 again and mains would stay on.
+
+### 2026-11-12 (night) — the release raced Klipper's shutdown; `_PSU_RELAY_RELEASE` now waits with M400
+
+*What happened:* two poweroffs from the screen, 30 minutes apart. The first cut mains. The
+second did not, even though the hook logged `PS_ON released` both times. In both journals
+systemd stopped `klipper.service` about 35 ms after the hook returned: 11:51:41.808 →
+41.842 and 11:52:14.664 → 14.698. The second poweroff came 4 s after `Klippy ready`
+(Moonraker 11:52:10.086). The delayed_gcode re-assert had already fired by then, so it was
+not the cause.
+
+*Why:* in this Klipper `SET_PIN` does not reach the MCU at once.
+`extras/output_pin.py` puts the request into a `GCodeRequestQueue` at a print time about
+0.25 s ahead (`BUFFER_TIME_START = 0.250`). It is transmitted only when the motion queue
+flushes. A gcode request that returns after 35 ms leaves the change sitting in the host's
+queue, and stopping Klipper drops it. The first poweroff won that race and the second
+lost it.
+
+*Measured, with harmless re-writes of `PS_ON` = 1:* `SET_PIN` alone returns in 0.035 s.
+`SET_PIN` followed by `M400` returns in 0.44 s, because `wait_moves()` blocks until the
+MCU's estimated print time passes the scheduled change.
+
+*Fix:* `_PSU_RELAY_RELEASE` ends with `M400`. It also starts with `UPDATE_DELAYED_GCODE
+ID=PSU_RELAY_ASSERT DURATION=0`, so a poweroff within 2 s of `ready` cannot be followed by
+the re-assert. *To verify:* one poweroff a few seconds after `ready` and one after a long
+idle period. Both must cut mains.
