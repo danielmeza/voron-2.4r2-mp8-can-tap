@@ -1,6 +1,6 @@
 # 0022 — Hold the PSU relay closed from boot; POWER_OFF cuts mains
 
-**Status:** Accepted · 2026-11-10 · config in the repo, module not yet wired
+**Status:** Accepted · 2026-11-10 · revised 2026-11-11: the module needs no 5 V feed, and PD14 is now set high at MCU startup — see the last entry in Revisions
 
 ## Context
 
@@ -203,3 +203,105 @@ PSU_RELAY_ASSERT]` re-assert. With the delayed_gcode in place, `PS_ON` read 1.0 
 and 4 s later on every restart of this session, with KlipperScreen running; with
 KlipperScreen frozen it also held. The zeroing seen before the delayed_gcode was added did
 not reproduce afterwards, so the re-assert stays until the cause is named.
+
+**2026-11-11 — read from the module's own schematic and firmware: it needs no 5 V feed, it
+latches off, and Klipper is too late for its first deadline.** The module kept cutting mains
+~15 s after every power-on, whatever was done to its inputs. The sources below replace the
+guesses in Context; the facts are taken from them, not from forum posts:
+
+- BTT's schematic *Relay V1.2.SchDoc* (2021-03-28), published in
+  `bigtreetech/BIGTREETECH-Relay-V1.2` issue #21;
+- the official firmware `Firmware/STC15W201S.hex` from the same repo (187 bytes of code),
+  byte-checked against the community disassembly (`sobieh/bttrelay`, `original/src.asm`);
+- the Manta M8P V2.0 schematic (`bigtreetech/Manta-M8P`, `V2.0/Hardware/…-SCH.pdf`, page 5).
+
+*What the module is:*
+
+| Part | Fact | Consequence |
+|---|---|---|
+| Supply | U1 (85–265 VAC → 5 V/3 W) from `L_IN`/`N`, through D1 (SS24) to `VCC_5V` | The module powers itself from mains. |
+| `5V_IN`/`GND` (J7, first header) | `5V_IN` only feeds an LM358 comparator (U3) against 4.5 V (R12 200 Ω / R13 1.8 kΩ); the output reaches P3.3 only through the short-circuit cap (J3) | **Not a supply.** The Context claim, the FAN4 trap analysis applied to this module, and both 5 V-source revisions above chased a requirement the module does not have. |
+| `S`/`G` (J2, **middle** header) | `S` → R4 100 Ω → base of Q2 (S8050 NPN); R6 10 kΩ to 5 V, R7 10 kΩ to GND on the base; collector = P3.2 with R2 4.7 kΩ pull-up | `S` high → P3.2 low → mains kept. `S` low → P3.2 high → cut. BTT's product photo shows R7 empty (a floating `S` keeps mains); this unit cut with `S` unplugged, so it may be built the other way. Only the bench can tell. |
+| `S`/`G` (J5, third header, same silkscreen) | Pin 1 is the module's own `VCC_5V` (via R8 10 kΩ to GND) | **An output** for a board's power-loss input. Bridging it shorts the module's supply. |
+| Relay T1 (SRD-05VDC-SL-C) | `L_OUTPUT` on the NC contact; P5.5 → Q1 energises the coil **to cut** | An unpowered module passes mains. That is why `LIN`–`LOT` showed continuity when measured after a cut, with the module unplugged. |
+| Firmware | Wait 8.0 s after reset; poll P3.2; when high, wait 7.5 s; if still high, energise the coil and **never release it** | First cut at 15.5 s after the module powers; afterwards 7.5 s after `S` drops. **Latched:** no level on `S` brings mains back, only removing the module's mains or bridging `5V`–`RST` (J6). |
+| Short-circuit path (J3 cap fitted) | Falling edge on P3.3 (INT1) → 50 ms → cut, latched | The INT1 vector (0x13) lands in the middle of the handler's pushes at 0x0B, so a dip shorter than 50 ms returns on a misaligned stack. The LM358's inputs sit near its own supply, outside its common-mode range. |
+
+*The Manta side:* J18 pin 2 is `PS-ON` = PD14 with no series resistor, pin 1 is GND. The
+module's J2 is pin 1 `S`, pin 2 `G`, so a cable crimped pin 1 → pin 1 puts GND on `S`. With
+`S` high, PD14 drives a 100 Ω resistor into a base–emitter junction, roughly
+2.5 V / (100 Ω + pin driver) ≈ 15–20 mA. That is at the STM32H7's 20 mA per-pin absolute
+maximum, and it also means PD14 reads below 3.3 V while the module is connected.
+
+*Why the test results all came out "cut at 15 s":* CB1 boot plus Klipper's config load takes
+far longer than 15.5 s, so `value: 1` and the `delayed_gcode` arrive after the first cut.
+After that cut the module is latched, and holding `S` high or low for a minute changes
+nothing. That accounts for every Klipper-driven test. It does **not** account for the hand
+tests (`S` floating, `S` bridged to 5 V). Those must be repeated with the level applied
+**before** the module is powered and the module power-cycled between tries. If `S` held
+high from power-on still cuts at 15.5 s, the module's input stage (R4/Q2) is faulty.
+
+*What changes:*
+
+- `firmware/manta-m8p-h723.config` gains `CONFIG_INITIAL_PINS="PD14"`, so the Manta drives
+  PD14 high from MCU reset, well inside the 15.5 s deadline. `[output_pin PS_ON]` keeps
+  `value: 1` / `shutdown_value: 1` for the time after Klipper loads. This is the fix BTT
+  issue #33 (Manta M8P + Klipper) and Klipper Discourse thread 15340 converged on. It takes
+  effect only after the Manta is reflashed.
+- **Decision item 2 is void.** The module needs no 5 V from the board. The J7 wire may
+  stay or go. **Remove the J3 short-circuit cap**: its detector trips on any 5 V dip, then
+  latches or crashes as described above.
+- During any Manta flash PD14 floats, and the module can cut mains mid-flash. Fit a jumper
+  on the module's `5V`–`RST` pins first (it holds the MCU in reset and the relay released)
+  and remove it afterwards.
+- Recommended and not yet fitted: a 1 kΩ resistor in series with `S`. It brings PD14 to
+  about 2.5 mA and still saturates Q2.
+
+*Still open:* this unit's variant (R6 or R7) and the health of its input stage, both by the
+bench test above. Also open: the `gcode_button POWER` on the CB1's `PI1`, which has no
+pull resistor and calls `POWER_OFF`. With a working relay, a spurious press now cuts mains
+7.5 s later, mid-print included.
+
+### 2026-11-12 — the module's input stage works; the Manta now drives PD14 from reset
+
+*Bench result:* with `S` (middle header) bridged to the module's **own** 5 V, the module
+held mains past the 15.5 s deadline. The input stage (R4/Q2) is healthy. An earlier try
+"5 V on `S`" still cut. The module's ground is isolated from the printer's, since it is
+fed from mains through U1. So only its own 5 V, or a source that also shares `G`, can turn
+Q2 on, and that earlier 5 V was evidently not one of those. With `S` left open, this unit
+cuts, so an open `S` is pulled low here. Do not rely on an unplugged cable to keep mains on.
+
+*Firmware:* the Manta was reflashed with `CONFIG_INITIAL_PINS="PD14"`. The build was
+v0.13.0-708-g7046bd00e, Katapult reported SHA `48FAD869225C426F145CB80599B3CEBA6A23E691`,
+and afterwards Klipper was `ready` with `PS_ON` at 1.0. The first run of
+`scripts/Update-VoronMcuFirmware.ps1` failed before reaching the board. Its Manta block
+escaped shell variables as `\$DEV`, which PowerShell expands on the workstation. The block
+now uses `` `$ ``.
+
+*Still open:* a cold power-on with the bench bridge removed and the Manta's PD14/GND wired
+to `S`/`G`, followed by `POWER_OFF` cutting mains about 7.5 s later. Also still open: the
+1 kΩ series resistor and the `PI1` button from the previous entry.
+
+### 2026-11-12 (later) — cold start holds; the unwired buttons are disabled; the screen's "power off" does not cut mains
+
+*Cold start (owner's observation):* the bench bridge was removed and the Manta's PD14/GND
+were wired to the middle header's `S`/`G`. The printer now stays on through a mains
+power-on. With the same wiring before the reflash, it cut at about 15 s every time. With
+`S` left open, the module cut about 7 s later, which matches the 7.5 s in the firmware.
+The owner has refitted the J3 short-circuit cap. The previous entry's advice to remove it
+stands.
+
+*Buttons:* the owner confirms that nothing is wired to `PI1`, `PI9` or `PI13`, so all three
+`[gcode_button]` sections in `macros/buttons.cfg` are commented out. Their pins float,
+klippy.log has shown them firing at startup, and `POWER_OFF` now removes AC. There is
+also an untested hypothesis. A `POWER` callback that lands just after `ready` would run
+`POWER_OFF`, which ends in `SET_PIN PIN=PS_ON VALUE=0`. That would explain `PS_ON`
+reading 0.0 at the ready transition (2026-11-11 entry). `[delayed_gcode
+PSU_RELAY_ASSERT]` stays until that is tested with the buttons gone.
+
+*New failure, cause inferred and not yet read from the logs:* "power off" on the screen
+halted the CB1 but left mains on. Afterwards the printer was off the network, so no log
+was read. The likely path: the screen's shutdown asks Moonraker to power off the host,
+and nothing on that path writes `PS_ON`. Klipper is simply stopped, and the Manta goes on
+holding PD14 high. Only the `POWER_OFF` macro drops the pin. *Open:* make a host poweroff
+drop `PS_ON` too, with the CB1 halted inside the module's 7.5 s window.
