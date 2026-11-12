@@ -272,19 +272,21 @@ function Invoke-FlashCanBoard {
     if ($Spec.Key -eq 'manta') {
         # The bridge cannot be flashed over the bus it provides: request it into
         # Katapult over CAN, then talk to it over USB serial (1d50:6177).
+        # Shell variables are escaped with a backtick: PowerShell's escape is `,
+        # not \, so "\$DEV" would be expanded here on the workstation.
         $script = @"
 set -e
 cd ~/klipper
 ~/klippy-env/bin/python ~/katapult/scripts/flashtool.py -i can0 -u $($Spec.Uuid) -r 2>&1 | tail -3
-for i in \$(seq 1 20); do
+for i in `$(seq 1 20); do
   sleep 2
-  DEV=\$(ls /dev/serial/by-id/usb-katapult_* 2>/dev/null | head -1)
-  [ -n "\$DEV" ] && break
+  DEV=`$(ls /dev/serial/by-id/usb-katapult_* 2>/dev/null | head -1)
+  [ -n "`$DEV" ] && break
 done
-DEV=\$(ls /dev/serial/by-id/usb-katapult_* 2>/dev/null | head -1)
-if [ -z "\$DEV" ]; then echo "NO_KATAPULT_USB_DEVICE"; exit 1; fi
-echo "katapult usb device: \$DEV"
-~/klippy-env/bin/python ~/katapult/scripts/flashtool.py -d "\$DEV" -f ~/klipper/out/klipper.bin 2>&1 | tail -8
+DEV=`$(ls /dev/serial/by-id/usb-katapult_* 2>/dev/null | head -1)
+if [ -z "`$DEV" ]; then echo "NO_KATAPULT_USB_DEVICE"; exit 1; fi
+echo "katapult usb device: `$DEV"
+~/klippy-env/bin/python ~/katapult/scripts/flashtool.py -d "`$DEV" -f ~/klipper/out/klipper.bin 2>&1 | tail -8
 "@
     } else {
         $script = @"
