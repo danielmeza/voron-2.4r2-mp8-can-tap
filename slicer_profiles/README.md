@@ -60,6 +60,24 @@ for Cura. Where each number comes from:
 
 Calibration order for it is in [`docs/FILAMENT_CALIBRATION.md`](../docs/FILAMENT_CALIBRATION.md); results replace these values.
 
+### Creality Hyper Series ABS Black — Cura only (2026-11-12, owner's starting point)
+
+`cura/creality_hyper_abs_black.xml.fdm_material`, label `Creality Hyper ABS Black (repo)`.
+Spool label: 1.75 mm, 30–300 mm/s, nozzle 230–270 °C, bed 80–100 °C.
+
+| Setting | Value | Source |
+|---|---|---|
+| Bed first layer / after | **80 / 80 °C** | owner's choice, bottom of the spool's 80–100 range |
+| Part fan regular / max | **50 / 70 %** | owner's choice; 50 % on layers ≥ 20 s, ramping to 70 % at the 12 s minimum layer time |
+| Nozzle / first layer, flow, retraction | 230 / 235 °C, 0.903, 0.5 mm @ 35 | inherited from the calibrated grey spool above; re-check flow on this spool |
+| Speeds | — | not a Cura material field; keep the print profile within 30–300 mm/s |
+
+**Trade-off of the 80 °C bed:** `PRINT_START` picks its chamber soak gate from `BED`
+(`> 90` → ABS gate 40 °C, `> 65` → PETG gate 30 °C), so this profile soaks only to a
+30 °C chamber, against the grey profile's ≥ 95 °C bed kept for that branch and for the
+rear exhaust draft. With the part fan at 50–70 % expect more warping on large parts; if
+corners lift, raise the bed toward 95–100 °C before lowering the fan.
+
 After importing, select the three `(repo)` presets in the project and save the `.3mf`
 so its embedded copies are the good ones, then delete the old `Voron 2.4 350 0.4` and any
 `…(Orcaslicer project.3mf)` printer the project brought in.
