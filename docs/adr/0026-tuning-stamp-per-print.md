@@ -43,3 +43,11 @@ Rejected:
 `// TUNE  | pa 0.0220/0.030 flow 100.0% speed 100% | z -0.559+0.000 | shaper(cfg) x 2hump_ei@78.6 y mzv@35.8 | bed 0 hot 0 chamber 36.6`
 (no file name while idle). `_TUNE_STAMP_END` printed nothing, as expected with nothing
 changed. The first real print will show the line with its file name.
+
+## Revisions
+
+### 2026-11-12 — phase times on the TUNE line
+
+The line now ends with `start <total>s: home N preqgl N bed N clean N qgl N soak N mesh N heat N purge N`. `_PHASE_RESET` starts the timer at "Starting print", `_PHASE NAME=...` records each phase as it ends, and `purge` is the time from the last phase (heat) to the `_TUNE_STAMP` call.
+
+The owner wants the long start kept: the gantry bends with chamber heat and has no titanium backers yet, so QGL and the mesh must wait for its final shape ([ADR-0003](0003-temperature-gated-soak.md)). The phase times are there to see where the time goes, not to shorten the soak.

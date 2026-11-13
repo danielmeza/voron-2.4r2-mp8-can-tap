@@ -134,3 +134,7 @@ this part. It went in alongside the fix for the uncancellable `TEMPERATURE_WAIT`
 fixed `G4` of 10 minutes has the same shape: `CANCEL_PRINT` queues behind it. A cold start
 now gets only the soak capped by `soak_max_min` (6 min), after the nozzle preheat and
 QGL. Found by the PR 1 review; the Decision text above is left as written.
+
+### 2026-11-12 — the owner confirms the long start is wanted
+
+The gantry deforms as the chamber heats and has no titanium backers (none planned soon), so leveling and meshing after the soak match the gantry's final hot shape. A median of 12.6 min before printing over 26 completed jobs is accepted for that reason.

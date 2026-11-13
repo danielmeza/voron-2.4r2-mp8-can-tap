@@ -791,6 +791,8 @@ Build configs for all three boards are preserved in
 - [x] SSH key auth not set up; blocks reflash and any host-side work
 - [ ] X/Y tensioners are damaged (owner, 2026-11-12): reprint them or fit CNC aluminium gantry parts. Until then a re-run of input shaping or belt work will not improve the Y resonance (mzv @ 35.8 Hz).
 - [x] The three "Probe triggered prior to movement" at 20:47:54 on 2026-11-12 were the owner cleaning the nozzle by hand; not a TAP fault.
+- [ ] TAP samples_tolerance (owner: later). On the 2026-11-12 23:35 start, 6 of ~29 probes retried (21 %); the cold PROBE_ACCURACY sigma 0.0019 mm predicts ~6 %, so the hot sigma is ~0.003 mm. 0.010 would cut retries to ~1 %, ~25 s per start.
+- [ ] No titanium gantry backers yet (owner, 2026-11-12, not soon): the long soak before QGL/mesh stays (ADR-0003).
 
 ---
 
