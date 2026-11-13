@@ -366,3 +366,17 @@ MCU's estimated print time passes the scheduled change.
 ID=PSU_RELAY_ASSERT DURATION=0`, so a poweroff within 2 s of `ready` cannot be followed by
 the re-assert. *To verify:* one poweroff a few seconds after `ready` and one after a long
 idle period. Both must cut mains.
+
+### 2026-11-12 (late night) — a RESTART that lands in shutdown does not drop mains
+
+A routine `RESTART` (applying the ADR-0002/0005 macro fixes) ended in `shutdown`, not
+`ready`. Moonraker sent `query_endstops/status` while `mcu` was still at
+`Starting connect`, and `extras/query_endstops.py:29` → `mcu.py:405` raised
+`AttributeError: 'NoneType' object has no attribute 'send'` (*Internal Error on
+WebRequest*). This is a host-side startup race, unrelated to the config change: the new
+macros were already parsed. The machine sat in `shutdown` for about 2 minutes. Mains
+stayed on the whole time (Moonraker kept answering), consistent with the Manta driving
+PD14 from reset (entry above). A second plain `RESTART` reached `ready` with
+`output_pin PS_ON` = 1.0. *Takeaway:* when a restart lands in this `query_endstops`
+shutdown, a host `RESTART` is enough. `FIRMWARE_RESTART`, and with it a Manta reset, is
+not needed.
