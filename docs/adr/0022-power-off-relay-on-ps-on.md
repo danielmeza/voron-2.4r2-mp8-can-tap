@@ -415,3 +415,25 @@ Katapult. It needs the BOOT0 button, and it runs equally without PD14; the deplo
 through the existing bootloader.
 *To verify after applying:* PS_ON high at the relay input while the Manta sits in Katapult,
 then mains staying on with the relay back in circuit.
+
+### 2026-11-13 (10:3x) — applied: the Manta's Katapult now holds PS_ON (measured 3.06 V)
+
+Applied with the PSU wired direct, so the relay was out of the circuit. The runbook in
+`firmware/README.md` was followed.
+
+- **EBB:** Katapult request, then `deployer.bin` (verified SHA `873A148C…`), then
+  Klipper 827 back on. It came back as `Application: Klipper`.
+- **Manta:** Katapult request, then `deployer.bin` written through the old Katapult
+  (`Software Version: v0.0.1-91-g604b7e5`, SHA `B66A7BCB…`), then Klipper 827 written
+  through the **new** one (`Software Version: v0.0.1-115-g3b973a4`, SHA `EDA55EFE…`).
+- **Afterwards:** all three MCUs read 827, Klipper was `ready`, `PS_ON` read 1.0, and
+  `QUERY_PROBE` gave `probe: open`.
+
+**The proof:** with Klipper stopped and the Manta held in its new Katapult, the owner
+measured **3.06 V on PD14 against GND**. The old Katapult had let PD14 drop, which is what
+cut mains on 2026-11-13 at 01:35. Klipper 827 was written back, and everything read as
+above.
+
+*Still to do:* the same check with the relay back in circuit. Hold the Manta in Katapult
+for more than 20 s, which is beyond the module's 7.5 s cut, and mains must stay on. Only
+then lift the `-RelayHeldByHand` guard and the CLAUDE.md rule.

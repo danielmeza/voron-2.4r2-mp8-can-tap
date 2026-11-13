@@ -81,7 +81,7 @@ bootloader intact and reachable, so you retry rather than recover. The Manta's S
 - **TAP:** the EBB carries the only Z endstop (`probe:z_virtual_endstop`). After
   flashing it, verify with `QUERY_PROBE` before any `G28 Z`.
 
-## Katapult update — staged 2026-11-13, NOT applied
+## Katapult update — staged 2026-11-13, APPLIED 2026-11-13 ~10:40 (both boards on v0.0.1-115; PD14 measured 3.06 V in Katapult, ADR-0022)
 
 **Why:** the Manta's Katapult (v0.0.1-91, built with `CONFIG_INITIAL_PINS=""`) does not
 drive PD14. Entering it drops `PS_ON`, and the relay cuts mains (ADR-0022, 2026-11-13).
