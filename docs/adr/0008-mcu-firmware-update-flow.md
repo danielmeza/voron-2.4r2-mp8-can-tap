@@ -109,3 +109,5 @@ date). After the owner powered the printer back on, all three MCUs read 827, Kli
 *Consequence for this flow:* the Manta step must not run unattended until Katapult
 holds PD14. The script should refuse `manta` unless an explicit switch says the relay is
 held by hand. Until that guard exists, run only `-Boards linux,ebb` remotely.
+
+*Guard added the same day:* `Update-VoronMcuFirmware.ps1` now skips `manta` unless `-RelayHeldByHand` is given. Checked with `-Boards all -Force -DryRun` against the machine: it printed the SKIPPED warning, and "Will flash: linux, ebb".

@@ -14,6 +14,7 @@
 
     Board order is deliberate: Linux MCU, then EBB, then Manta LAST -- the Manta is
     the USB-to-CAN bridge, so reflashing it drops the whole bus including the EBB.
+    The Manta is skipped unless -RelayHeldByHand is given (ADR-0022).
 
     Katapult lives below the application offset on both CAN boards and is never
     overwritten, so a failed application flash is retryable rather than a brick.
@@ -42,6 +43,11 @@
 .PARAMETER DryRun
     Report what would happen; make no changes.
 
+.PARAMETER RelayHeldByHand
+    The Manta's bootloader does not hold PS_ON, so the PSU relay cuts mains during
+    a Manta flash unless someone holds the relay on at the machine. Pass this only
+    when that is true (ADR-0022, 2026-11-13).
+
 .EXAMPLE
     ./Update-VoronMcuFirmware.ps1 -DryRun
 
@@ -61,7 +67,8 @@ param(
     [ValidateSet('ebb', 'manta', 'linux', 'all')]
     [string[]] $Boards      = @('ebb', 'manta'),
     [switch]   $Force,
-    [switch]   $DryRun
+    [switch]   $DryRun,
+    [switch]   $RelayHeldByHand
 )
 
 Set-StrictMode -Version Latest
@@ -367,6 +374,18 @@ if (-not $todo) {
     Write-Step 'Nothing to do'
     Write-Ok 'All selected MCUs already match the host. (Use -Force to reflash anyway.)'
     exit 0
+}
+
+# The Manta is the USB-CAN bridge and its bootloader does not hold PS_ON (ADR-0022):
+# without a hand on the relay, the PSU cuts mains mid-flash. Skip it unless told otherwise.
+if (-not $RelayHeldByHand -and ($todo | Where-Object { $_.Key -eq 'manta' })) {
+    Write-Warn "manta needs flashing but is SKIPPED: its bootloader drops PS_ON and the relay cuts mains (ADR-0022). Re-run with -RelayHeldByHand only with the relay held on at the machine."
+    $todo = @($todo | Where-Object { $_.Key -ne 'manta' })
+    if (-not $todo) {
+        Write-Step 'Nothing else to flash'
+        Write-Info 'Linux and EBB already match the host; manta was skipped (see the warning above).'
+        exit 1
+    }
 }
 
 $script:HasRoot = $false
