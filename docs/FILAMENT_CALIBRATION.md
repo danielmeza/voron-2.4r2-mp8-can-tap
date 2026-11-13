@@ -17,7 +17,7 @@ filament preset under test. Run `scripts/verify_slicer_gcode.py` on the first fi
 | 3 | **Pressure advance** | Calibration › Pressure Advance › **PA Pattern** | corners: no bulge (too little), no gap (too much). Direct drive: 0 → 0.08, step 0.002 | `pressure_advance` (+ `enable_pressure_advance 1`) |
 | 4 | **Retraction** | live, see below | least stringing on a two-tower test; stop increasing when strings stop, do not go past ~1.5 mm on the CW2 | `filament_retraction_length`, `filament_retraction_speed` |
 | 5 | **Max volumetric speed** | Calibration › Max Flowrate, 5 → 25 mm³/s step 0.5 | the height where the line starts to break up or thin; take 10 % under it | `filament_max_volumetric_speed` |
-| 6 | **Cooling / layer time** | a real small part | ABS: fan 10–20 %, overhang 50–60 %, min layer time 12 s; more fan cracks layers | `fan_min_speed`, `fan_max_speed`, `overhang_fan_speed`, `slow_down_layer_time` |
+| 6 | **Cooling / layer time** | `scripts/gen_layer_time_tower.py` (ADR-0027), then a real small part | ABS: fan 10–20 %, overhang 50–60 %, min layer time 12 s; more fan cracks layers | `fan_min_speed`, `fan_max_speed`, `overhang_fan_speed`, `slow_down_layer_time` |
 | 7 | *Only if flow moved > 3 %* | `SQUISH_TEST_GRID` (ADR-0016) | first-layer squish re-check | `z_offset` (rare) |
 
 Why this order: temperature changes how every later test looks; flow must be right
