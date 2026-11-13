@@ -120,3 +120,9 @@ still turns the heaters off with `TURN_OFF_HEATERS`, and `_USER_CANCEL` still ca
 
 **Evidence:** found by the 2026-11-12 macro survey ([ADR-0025](0025-mainsail-macro-groups-by-state.md)).
 Not yet confirmed on the machine.
+
+### 2026-11-12 — the gate is 70 °C, not 90 °C
+
+Hyper ABS Black prints at bed 80, so PRINT_END never held the bed and released the motors every time, and the next print paid a full cold start. Measured on 2026-11-12 at 23:35: the bed wait took 163 s and the pre-QGL 71 s of a 7.1 min start (that start came 76 min after the previous print, past any standby; the saving applies to prints less than 25 min apart). The hold is 0.85 × 80 = 68 °C. PETG-range beds (≥ 70) now hold too.
+
+The same threshold (`standby_min_bed`) now also decides whether `M84` releases the motors and whether the toolhead LEDs show standby, so a bed of 70–89 °C is treated like an ABS print at every one of those points.
