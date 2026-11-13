@@ -402,3 +402,16 @@ does not (2026-11-12 late-night entry).
 bootloader entry", flashed once over DFU at the machine. Until then, the Manta is flashed
 only with the owner present and the relay held on by hand (ADR-0008 revision of the same
 date).
+
+### 2026-11-13 (later) — Katapult that holds PD14 is built and staged, not applied
+
+Decision (owner): rebuild the Manta's Katapult with `INITIAL_PINS="PD14"` so the
+bootloader keeps the relay closed. Flash it tomorrow with the PSU wired direct and the
+relay out of the circuit, then wire the relay back in. Same config as the installed
+bootloader otherwise (v0.0.1-91 → upstream v0.0.1-115-g3b973a4). The EBB gets the same
+Katapult version. The images, checksums and runbook are in `firmware/README.md` ("Katapult
+update"), and the configs are `firmware/katapult-*.config`. Rejected: a DFU reflash of
+Katapult. It needs the BOOT0 button, and it runs equally without PD14; the deployer goes
+through the existing bootloader.
+*To verify after applying:* PS_ON high at the relay input while the Manta sits in Katapult,
+then mains staying on with the relay back in circuit.
