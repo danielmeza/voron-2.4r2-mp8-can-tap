@@ -52,6 +52,7 @@ the record, and this repo has already re-learned the same lesson twice without i
 | [0025](0025-mainsail-macro-groups-by-state.md) | Mainsail macro groups follow the printer state, and live in the repo | Accepted 2026-11-12 |
 | [0026](0026-tuning-stamp-per-print.md) | Every print stamps its effective tuning in one console line | Accepted 2026-11-12 |
 | [0027](0027-layer-time-dwell-ladder.md) | Minimum layer time is measured with a dwell ladder | Accepted 2026-11-12, result pending |
+| [0028](0028-sfs-flow-meter.md) | The SFS encoder doubles as a flow meter | Proposed 2026-11-12, measurements pending |
 
 ## Why these exist
 
