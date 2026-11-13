@@ -51,9 +51,18 @@ Firmware retraction remains the tool for a *live* sweep on a real part
    not just the value. If a machine default changes too (PA in `extruder.cfg`,
    `[firmware_retraction]`), sync, `RESTART`, query, and revise the ADR that owns it.
 
+**Orca numbers in Cura** (measured 2026-11-12, `TUNING_PLAN.md`):
+- *Flow carries over 1:1.* Cura extrudes `width × height` per line and spaces lines a
+  full width apart; Orca extrudes the rounded section `h × (w − h(1 − π/4))` and spaces
+  lines by that same reduced width. Both lay `h × flow` per unit area, so Orca's 0.903 is
+  90.3 % in Cura. Hole sizes on a real Cura part confirmed it.
+- *PA does not.* Cura sends none. The print runs at the `extruder.cfg` default unless a plugin
+  sends `M900` (the repo's `M900` macro maps it to `SET_PRESSURE_ADVANCE`) or
+  `SET_PRESSURE_ADVANCE`.
+
 ## Current filaments
 
 | Filament | Temp | Flow | PA | Retraction | Max vol. | Status |
 |---|---|---|---|---|---|---|
 | Generic ABS (repo) | 260 | 0.9334 | 0.022 | 0.75 @ 35 | not measured (250 inherited) | flow re-test open since 2026-08-15 |
-| Creality Hyper ABS (repo) | 230 / 235 | **0.903** (pass 1: 0.97 → −5 → 0.9215; pass 2: −2 → 0.9215 × 0.98 = 0.903; 2026-09-22, 230 °C) | **0.036** (PA Pattern DDE 0–0.08, 2026-09-24) | **0.5 @ 35** (tower 0–2 mm: only 0.0 strung, clean from 0.1; 0.5 = margin) | 23 (Creality's) | steps 1–4 done, next: max volumetric speed (step 5) |
+| Creality Hyper ABS (repo) | 230 / 235 | **0.912**: pass 2's block −1, raised 2026-11-12 because a real part's top skin showed the layer below. Was 0.903 (pass 1: 0.97 → −5 → 0.9215; pass 2: −2 → 0.9215 × 0.98 = 0.903; 2026-09-22, 230 °C) | **0.036** (PA Pattern DDE 0–0.08, 2026-09-24) | **0.5 @ 35** (tower 0–2 mm: only 0.0 strung, clean from 0.1; 0.5 = margin) | 23 (Creality's) | steps 1–4 done in Orca, probably on the black spool (never a grey one); next: max volumetric speed (step 5) |

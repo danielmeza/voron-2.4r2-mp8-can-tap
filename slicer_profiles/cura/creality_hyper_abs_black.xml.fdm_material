@@ -4,8 +4,12 @@
      Owner's starting point (2026-11-12): bed 80 C, part fan 50-70 %: 50 % on layers of
      20 s or more, ramping to 70 % as layer time falls to the 12 s minimum.
      Nozzle 230 / 235 first layer, flow 0.903 and retraction 0.5 @ 35 come from the
-     calibrated grey Hyper ABS (creality_hyper_abs.xml.fdm_material); re-check flow for this
-     spool.  Pressure advance 0.036 is not a Cura material field (see that file).
+     September calibration (creality_hyper_abs.xml.fdm_material), done in Orca and probably
+     on this black spool; there was never a grey one.  An Orca flow ratio carries over 1:1
+     to Cura (docs/FILAMENT_CALIBRATION.md).  A real part's top skin showed the layer below,
+     so flow went up one block to 91.2 (2026-11-12, pass 2 block -1).
+     Pressure advance 0.036 rides on fieldOfView's Linear Advance plugin keys below
+     (material_linear_advance_*); its M900 becomes SET_PRESSURE_ADVANCE (docs/adr/0012).
      Speeds (30-300 mm/s) belong to the Cura print profile, not to the material.
      Bed 80 C: PRINT_START picks its soak gate from BED (> 90 -> ABS, chamber 40 C;
      > 65 -> PETG, chamber 30 C), so at 80 C the chamber soak stops at 30 C.  With the fan
@@ -43,7 +47,9 @@
     <setting key="surface energy">100</setting>
     <cura:setting key="material_print_temperature_layer_0">235</cura:setting>
     <cura:setting key="material_bed_temperature_layer_0">80</cura:setting>
-    <cura:setting key="material_flow">90.3</cura:setting>
+    <cura:setting key="material_flow">91.2</cura:setting>
+    <cura:setting key="material_linear_advance_enable">True</cura:setting>
+    <cura:setting key="material_linear_advance_factor">0.036</cura:setting>
     <cura:setting key="cool_fan_speed_min">50</cura:setting>
     <cura:setting key="cool_fan_speed_max">70</cura:setting>
     <cura:setting key="cool_min_layer_time_fan_speed_max">20</cura:setting>

@@ -591,6 +591,73 @@ by `scripts/verify_slicer_gcode.py`. [ADR-0012](adr/0012-slicer-integration-for-
       long) in every band, retraction-independent: that file travelled at 120 mm/s
       ("Default Setting") with wipe off; re-judge on a real part with the `(repo)`
       process (travel 350, wipe on) before blaming moisture.
+      **Spool, corrected 2026-11-12:** there was never a grey spool. The Hyper ABS on this
+      machine was the black one, or the first red; the owner believes the September
+      numbers come from the black. "Grey" in the Cura files came from the base material's
+      colour code.
+      **First real part from Cura, 2026-11-12:** `V350_soporte_v8.gcode` (Cura, 0.2 mm,
+      38 min, Hyper ABS Black, bed 80 °C). Good adhesion, no warping. The findings below
+      were measured from that gcode, not inferred:
+      - **Flow carries over 1:1 between Orca and Cura.** Each Cura line holds
+        `width × height × flow` (outer wall E/mm ÷ (0.42 × 0.2) = 0.903 exactly), each Orca
+        line the rounded section `h × (w − h(1 − π/4))` (the repo's Orca sample: 0.926, its
+        `filament_flow_ratio`, exactly). But Cura spaces lines a full width apart and Orca
+        `w − h(1 − π/4)` apart, so both lay `h × flow` per unit area. The holes agree: the
+        outer-wall loops of the 12.00 and 19.60 mm holes (paths 12.42 / 20.02 mm minus the
+        0.42 line) measured **12.0 and 19.5 mm**. The walls are not over-extruded, and the
+        tight fit is the design's clearance. *(Corrects a claim made earlier the same day that
+        Cura laid ~11 % more plastic and that ~81.5 % was the Cura equivalent: per line yes,
+        per area no.)*
+      - **Cura sends no pressure advance.** The job ran at the `extruder.cfg` default
+        0.022, not the filament's 0.036.
+      - **A band 0.2–0.4 mm proud on the front curve, 16.6–21.6 mm:** from layer 82 the
+        section drops to a 4.5 × 35.6 mm wall (53 lines per layer), and the 12 s minimum
+        layer time cut the outer wall from 54–57 mm/s to 22 mm/s.
+      - **Three vertical ripples on the left face (along Y), first 16.6 mm**, at the front
+        before the curve: crests 1.2–1.35 mm apart at 54–57 mm/s → **40–47 Hz**, an X
+        oscillation. By Klipper's own residual formula (damping 0.075–0.15), the live X
+        shaper `2hump_ei` @ 78.6 Hz leaves 10–20 % at 40–46 Hz; `ei` @ 46.8 Hz, which
+        scored 0.0 % in the 2026-07-26 sweep, leaves 2–4 % there. Config not changed: try
+        it live with `SET_INPUT_SHAPER` on a ringing print first.
+      - **The flat top of the base shows the layer below**, between the holes and the outer
+        wall, with no curve and no stepping there (owner). The bottom face is perfect. That
+        top skin (layers 77–81) ran at 97–115 mm/s, ≈ 8 mm³/s, so the melt rate is not the
+        limit. This matches September's pass 2, where 0.903 was the last block before gaps.
+      - **Flow raised to 0.912 (91.2 % in Cura)**, pass 2's block −1 (0.9215 × 0.99), on
+        the owner's call. Updated in the Orca preset and both Cura materials.
+      - **A/B sample, 2026-11-12:** `V350_base_ei468_flow101.gcode` is the same file cut
+        after layer 81 (the base with its flat top, ~19 min). It runs
+        `SET_INPUT_SHAPER SHAPER_TYPE_X=ei SHAPER_FREQ_X=46.8` and `M221 S101` (90.3 →
+        91.2 %) after `PRINT_START`, and restores both before `PRINT_END`. PA stays at
+        0.022, so only the shaper and the flow differ from the first print. The first
+        attempt was refused by `PRINT_START`: the hotend target had been left at 230 °C by
+        hand, and ADR-0017's guard worked as designed. The second attempt **paused 22 s
+        into the first layer on `SFS encoder: jam`** (ADR-0024); it was cancelled. If the
+        encoder trips again with filament moving, look at `detection_length: 2.88`.
+        Rerun as `V350_base_ei468_flow101_pa036.gcode`: the same cut from the re-slice
+        with the Linear Advance plugin, so PA is **0.036** (`M900 K0.036000 T0` before
+        `PRINT_START`; the console printed `M900: pressure_advance -> 0.0360`). That makes
+        three changes against the first print, each judged on its own feature: ripples
+        (shaper), flat top (flow), corners (PA). It ran to the end: `Done printing file`
+        at 22:19:38, `completed`, 1209 s, 2105 mm of filament.
+        **Result (owner, 2026-11-12):**
+        - *Flat top:* much better at 91.2 %, but small holes remain where the top lines meet
+          the wall. That is the skin/wall overlap, the "Infill/perimeter overlap" step
+          below. Cura's `skin_overlap` is not set by the profile, so it runs at Cura's
+          default.
+        - *Ripples:* still there with X `ei` @ 46.8. Either the X-ringing reading
+          (40–47 Hz) is wrong, or the shaper only weakened them; ask which. The
+          gcode shows several CAD edges within ~5 mm of that corner: the left face
+          (X 160.66) starts at the front-left corner after a 3.5 mm front flat, a 1.5 mm
+          45° chamfer and a 2.1 mm step. If the three lines sit on those edges, they are
+          geometry, not vibration.
+      - **Run 3, the full part, 2026-11-12:** `V350_soporte_v8_pa036_flow101.gcode` is the
+          plugin re-slice in full (167 layers), with `M221 S101` after `PRINT_START` and
+          the **config shaper** (`2hump_ei` @ 78.6). The console printed
+          `M900: pressure_advance -> 0.0360`. Against run 1 it changes PA and flow only,
+          so it judges the 16.6–21.6 mm band under PA. Against the base-only run it
+          changes only the shaper, so the ripples answer whether they depend on it.
+          Result: *pending*.
       Order and method: [`FILAMENT_CALIBRATION.md`](FILAMENT_CALIBRATION.md).
       Write each result here and into the preset.
 - [ ] Cooling and layer times

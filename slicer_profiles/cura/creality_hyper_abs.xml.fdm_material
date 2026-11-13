@@ -3,10 +3,12 @@
      Temperatures from the user's temperature tower (230 best); flow, cooling and layer-time
      limits from Creality's own OrcaSlicer presets (10-60 %, 12 s). Flow 0.903 measured
      2026-09-22: Orca Flow Rate pass 1 (0.97, -5 -> 0.9215) then pass 2 (-2 -> 0.903), 230 C.
+     An Orca flow ratio carries over 1:1 to Cura (docs/FILAMENT_CALIBRATION.md).  Raised to
+     0.912 (pass 2 block -1) on 2026-11-12, after a real part's top skin showed the layer below.
      Retraction 0.5 mm @ 35 (tower 2026-09-24: 0.0 strung, clean from 0.1 up; 0.5 keeps margin).
      Pressure advance 0.036 (PA Pattern 2026-09-24) is not a Cura material field: set it in
-     the Voron machine's Klipper settings plugin per material, or SET_PRESSURE_ADVANCE in the
-     filament start gcode.
+     fieldOfView's Linear Advance plugin as this material's factor; slicer_compat.cfg's M900
+     shim turns it into SET_PRESSURE_ADVANCE (docs/adr/0012, 2026-11-12).
      Calibrate flow, PA and retraction before trusting them: docs/TUNING_PLAN.md.
      Install: python3 scripts/install_slicer_presets.py -->
 <fdmmaterial xmlns="http://www.ultimaker.com/material" xmlns:cura="http://www.ultimaker.com/cura" version="1.3">
@@ -40,7 +42,9 @@
     <setting key="surface energy">100</setting>
     <cura:setting key="material_print_temperature_layer_0">235</cura:setting>
     <cura:setting key="material_bed_temperature_layer_0">100</cura:setting>
-    <cura:setting key="material_flow">90.3</cura:setting>
+    <cura:setting key="material_flow">91.2</cura:setting>
+    <cura:setting key="material_linear_advance_enable">True</cura:setting>
+    <cura:setting key="material_linear_advance_factor">0.036</cura:setting>
     <cura:setting key="cool_fan_speed_max">60</cura:setting>
     <cura:setting key="cool_min_layer_time">12</cura:setting>
     <cura:setting key="cool_min_speed">20</cura:setting>

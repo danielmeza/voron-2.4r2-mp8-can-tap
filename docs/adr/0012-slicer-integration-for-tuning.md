@@ -266,3 +266,28 @@ what the GUI's "save preset" produces. Same script installs the Cura material
 profiles for the Voron, so only the material was missing. The bundle remains for
 portability. Verified on disk 2026-09-22: 1 printer, 2 filaments, 2 processes in Orca,
 1 material in Cura; both apps were closed at the time.
+
+### 2026-11-12 — Cura production prints carry PA through the Linear Advance plugin
+
+The first real Hyper ABS part sliced in Cura (`V350_soporte_v8.gcode`) has no `M900` and
+no `SET_PRESSURE_ADVANCE`. It printed at the `extruder.cfg` default of 0.022, not the
+filament's 0.036; both the file and the live `extruder.pressure_advance` were checked.
+Owner's call: stay on Cura for production for now. fieldOfView's *Linear Advance
+Settings* plugin carries the material's PA as its factor, and the `M900` shim from
+decision 1 turns it into `SET_PRESSURE_ADVANCE`.
+
+Rejected for now:
+- **Back to OrcaSlicer.** This is the fallback if the plugin route fails: Orca sends PA
+  per filament and has "Don't slow down outer walls".
+- **jjgraphix's Klipper Settings plugin.** It is tested only up to Cura 5.0, and this
+  machine runs 5.14.
+- **Raising the machine default to 0.036.** Generic ABS is 0.022.
+
+Flow needs nothing of the kind: an Orca ratio carries over 1:1 (`FILAMENT_CALIBRATION.md`).
+To verify on the first file sliced with the plugin: it contains `M900 K0.036`, and the
+console prints `M900: pressure_advance -> 0.0360`. **Verified the same day:** Cura
+5.14 with the plugin emitted one `M900 K0.036000 T0 ;added by LinearAdvanceSettingPlugin`,
+19 lines before `PRINT_START`, and no heating command before it (ADR-0017). The console
+printed the line above, and the live `extruder.pressure_advance` read 0.036. The
+plugin's keys, `material_linear_advance_enable` and `material_linear_advance_factor`,
+now sit in both Hyper ABS Cura materials, so the installer carries them.
