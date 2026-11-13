@@ -113,3 +113,21 @@ stop. No config change was made then or now: the wait is what `CLEAN` means, and
 third instance of the same failure shape (an uncancellable temperature wait, see
 [ADR-0003](0003-temperature-gated-soak.md) and [ADR-0017](0017-refuse-slicer-preheat.md)):
 any `CLEAN` below ~120 °C is effectively a long, uninterruptible dwell.
+
+### 2026-11-12 — wipe once while still hot when the nozzle arrives hot
+
+*Evidence:* a print was cancelled at 17:03:58 after 1.5 min. It was restarted at 17:04:38,
+with the nozzle still near print temperature. `CLEAN_NOZZLE CLEAN=150 PURGE=0` relieved
+pressure, cooled to 150 °C over the bucket (58 s) and wiped. The QGL that followed
+aborted with `Probe samples exceed samples_tolerance`: the first point read 0.354, 0.278,
+0.220, 0.181, 0.149, 0.126, 0.108 and 0.090 mm over eight samples. Each touch was lower,
+which is TAP squashing a plastic blob on the tip. The blob formed while the nozzle sat
+parked after the cancel. At 150 °C it is rubbery, and the brush does not remove it.
+
+*Change:* when `PURGE` ≤ 150 and the nozzle enters `CLEAN_NOZZLE` more than
+`hot_wipe_margin` (30 °C) above `CLEAN`, it first makes `hot_wipe_qty` (4) passes over the
+brush while the plastic is soft. The existing cool-down and 10-pass wipe follow unchanged.
+A cold start reaches `CLEAN_NOZZLE` at about 150 °C (`PRINT_START` waits for 150 before
+the pre-QGL), so it never meets the condition and its sequence is identical to before.
+*To verify:* the next restart after a cancel prints `Nozzle still hot (...c): wiping
+before it cools`, and its QGL samples stay within tolerance.
