@@ -50,3 +50,20 @@ and `_USER_CANCEL`, referenced from `_CLIENT_VARIABLE`.
 - `variable_runout_sensor` must be the exact object name —
   `filament_motion_sensor filament_sensor`, a *motion* sensor, not a switch sensor.
 - Park-at-cancel coordinates are now configuration, not code.
+
+## Revisions
+
+### 2026-11-12 — _USER_RESUME restores the paused hotend target
+
+Mainsail's `RESUME` restores `last_extruder_temp` only when the printer comes back from
+the idle state. A filament change inside a pause runs `LOAD_FILAMENT`/`UNLOAD_FILAMENT`,
+which heat to 250 °C with `M109`, so a pause, load and resume continued the print at
+250 °C instead of the print temperature.
+
+`_USER_RESUME` now compares the hotend target with the saved temperature and, when they
+differ, sets the saved temperature back with `M109` before `_CLIENT_EXTRUDE` and
+`RESUME_BASE`. `LOAD_FILAMENT`/`UNLOAD_FILAMENT` gained a `TEMP=` parameter (default 250)
+and now save and restore the gcode state; `LOAD_FILAMENT` also sets `M83` after `G92 E0`.
+
+**Evidence:** found by the 2026-11-12 macro survey ([ADR-0025](0025-mainsail-macro-groups-by-state.md)).
+Not yet confirmed on the machine.

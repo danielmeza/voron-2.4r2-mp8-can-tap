@@ -106,3 +106,17 @@ passes the print target explicitly, so one call site does the arithmetic.
 The `bed_was >= 90` gate deliberately still tests the **print** target, not the scaled
 hold value — otherwise `0.85 × 90 = 76.5` would fall below the threshold and standby
 would stop engaging for exactly the ABS-range prints it exists to serve.
+
+### 2026-11-12 — a paused print counts as a live print
+
+The guards in `STOP_STANDBY_WARM` and `_STANDBY_WARM_OFF` tested
+`print_stats.state != "printing"`. During a pause the state is `"paused"`, so a pause
+looked like an ended print: the bed was switched off and `M84` released the motors
+mid-print. Both guards now test `not in ["printing", "paused"]`.
+
+A cancel from a pause now behaves like a cancel from printing. Mainsail's `CANCEL_PRINT`
+still turns the heaters off with `TURN_OFF_HEATERS`, and `_USER_CANCEL` still calls
+`STOP_STANDBY_WARM`.
+
+**Evidence:** found by the 2026-11-12 macro survey ([ADR-0025](0025-mainsail-macro-groups-by-state.md)).
+Not yet confirmed on the machine.
