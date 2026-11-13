@@ -470,7 +470,7 @@ by `scripts/verify_slicer_gcode.py`. [ADR-0012](adr/0012-slicer-integration-for-
 
       Final: `[probe] z_offset: -0.514 → -0.559` (grid result `-0.609`, then the
       2026-08-04 change below) in
-      [gantry/kinematics.cfg](../config/printer/gantry/kinematics.cfg).
+      [gantry/z_calibration.cfg](../config/printer/gantry/z_calibration.cfg).
 
       **2026-08-02 correction:** the first pass at this step (`-0.529 + 0.08 =
       -0.449`) applied the +0.08 with the **wrong sign** — see the

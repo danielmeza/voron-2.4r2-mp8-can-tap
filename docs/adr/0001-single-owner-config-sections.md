@@ -45,7 +45,8 @@ any conflicting duplicate, so this cannot silently regress.
 - The linter must be run after config edits; it exits non-zero on ERROR.
 - Two duplicate files (`gantry/rezonance.cfg`, `stealburner/resonance.cfg`) were
   deleted outright.
-- `[probe]` is still split across three sections in two files. Left alone
+- *(Resolved 2026-11-12: `[probe]` is one section again, see Revisions.)*
+  `[probe]` is still split across three sections in two files. Left alone
   deliberately — it is safety-critical for TAP and merges without conflict today —
   but it is the same fragility and is tracked as backlog.
 - Changing Z current from an accidental mix to a uniform 0.9 A is a **real behaviour
@@ -65,7 +66,7 @@ disjoint keys:
 |---|---|
 | `[stepper_x]`, `[stepper_y]`, `[stepper_z]` | pins in `gantry/stepper_drivers.cfg` · `microsteps`, `rotation_distance` in `gantry/steppers.cfg` · endstop, position limits, homing in `gantry/kinematics.cfg` |
 | `[stepper_z1]`…`[stepper_z3]` | pins in `gantry/stepper_drivers.cfg` · motor values in `gantry/steppers.cfg` |
-| `[probe]` | pin and offsets (incl. `z_offset`) in `gantry/kinematics.cfg` · sampling in `gantry/z_calibration.cfg` (two sections there) |
+| `[probe]` | the whole section (pin, offsets, `z_offset`, sampling, TAP `activate_gcode`) in `gantry/z_calibration.cfg` (one section since 2026-11-12) |
 | `[quad_gantry_level]`, `[bed_mesh]` | `gantry_corners`, QGL `points`, mesh bounds in `gantry/kinematics.cfg` · speeds, retries, `algorithm`, `probe_count` in `gantry/z_calibration.cfg` |
 | `[extruder]` | motor in `stealburner/stepper.cfg` · heater, sensor, nozzle in `stealburner/heatend.cfg` · `filament_diameter`, `gear_ratio`, pressure advance in `stealburner/extruder.cfg` |
 | `[respond]` | keys in `printer.cfg`; empty headers in `mainsail.cfg` and `klippy.conf` (the scan of `*.cfg` missed the latter) |
@@ -79,3 +80,24 @@ values. The same key with the same value twice is only `INFO redundant-duplicate
 0), so a repeated key is not caught until the copies diverge. A new key goes in the file
 of its concern and nowhere else. Moving every section into one file is not planned;
 the `[probe]` backlog item above stands on its own.
+
+### 2026-11-12 — [probe] is one section again
+
+The 2026-11-09 map's `[probe]` row (pin and offsets in `kinematics.cfg`, sampling in
+`z_calibration.cfg`, the TAP `activate_gcode` in a second section there) is superseded.
+The whole `[probe]` now lives in `gantry/z_calibration.cfg` as one section: `pin`,
+`x_offset`, `y_offset`, `z_offset` (with its history comment), the sampling keys, then
+`activate_gcode`. `gantry/kinematics.cfg` keeps only a pointer comment where the section
+was.
+
+*Why:* three sections in two files was the fragmentation the TUNING_PLAN open item
+warned about, the same shape as the earlier Z-current bug. The probe is one device, so
+its keys move together. Only the owner's concern for each key changed; no value did.
+
+*Evidence:* `configfile.settings.probe` was saved from the machine before the change
+and read again after the sync and `RESTART` (2026-11-12). The two are identical, key for
+key: `pin !EBB:TAP_PROBE`, offsets 0/0, `z_offset -0.559`, speed 5, lift 10, samples 2
+(median), retract 3, tolerance 0.005 with 3 retries, and the same `activate_gcode`.
+`grep '^\[probe\]' config/` finds one section. The machine's `kinematics.cfg` differed
+from the repo only in an older wording of the `z_offset` history comment; the repo's
+2026-09-19 text replaced it.
