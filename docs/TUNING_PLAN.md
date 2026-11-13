@@ -793,6 +793,9 @@ Build configs for all three boards are preserved in
 - [x] The three "Probe triggered prior to movement" at 20:47:54 on 2026-11-12 were the owner cleaning the nozzle by hand; not a TAP fault.
 - [ ] TAP samples_tolerance (owner: later). On the 2026-11-12 23:35 start, 6 of ~29 probes retried (21 %); the cold PROBE_ACCURACY sigma 0.0019 mm predicts ~6 %, so the hot sigma is ~0.003 mm. 0.010 would cut retries to ~1 %, ~25 s per start.
 - [ ] No titanium gantry backers yet (owner, 2026-11-12, not soon): the long soak before QGL/mesh stays (ADR-0003).
+- [x] Software updated 2026-11-13, idle, each component checked after its update: Moonraker v0.10.0-31 -> v0.11.0-4 (no warnings, no failed components), Mainsail v2.14.0 -> v2.19.0, KlipperScreen -> v0.4.7-206, sonar -> v0.2.0-2. Klipper ready, PS_ON 1.0, Mainsail macro groups unchanged (ADR-0025).
+- [ ] Klipper v0.13.0-708 -> v0.13.0-827 (119 commits): needs all three MCUs reflashed in ADR-0008 order (Linux MCU -> EBB -> Manta, QUERY_PROBE before any G28 Z). Do it with the owner at the machine, not unattended.
+- [ ] 241 system (apt) packages upgradable on the CB1: kernel/overlay changes can break CAN or boot, so this also waits for the owner. crowsnest repo reports invalid; camera already 502.
 
 ---
 
