@@ -60,9 +60,8 @@ pwsh ./scripts/Update-VoronMcuFirmware.ps1
 
 ## Reaching the printer and syncing config
 
-- Host: `voron.local` (Moonraker on port 80/7125), SSH alias `voron` (key auth, user
-  `biqu`). `.vscode/sftp.json` still points at `192.168.100.81`, which has not been
-  reachable since July 2026; use the Moonraker upload API
+- Host: `voron.local` or the static IP `192.168.68.63` (since 2026-11-12) (Moonraker on port 80/7125), SSH alias `voron` (key auth, user
+  `biqu`). `.vscode/sftp.json now points at 192.168.68.63 and uses the SSH key.` Use the Moonraker upload API
   (`POST /server/files/upload`, `root=config`, `path=printer/<dir>`) or `scp` over the alias.
 - **Check `print_stats.state` before every RESTART, FIRMWARE_RESTART, macro, heater or
   motion command.** `printing` or `paused` means hands off; uploading a file is fine
