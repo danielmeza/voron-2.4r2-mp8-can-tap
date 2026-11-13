@@ -129,3 +129,10 @@ The decision above kept `[filament_motion_sensor filament_sensor]` on
 the encoder at the spool. The SFS still catches it — it is the same "filament is not
 moving" measurement, just taken further upstream — but it will notice later, after the
 `detection_length` of slack plus the bowden path has been consumed.
+
+### 2026-11-12 — first real jam caught
+
+On 2026-11-12, 22 s into the first layer of `V350_base_ei468_flow101.gcode`, `sfs_motion`
+paused the print with `SFS encoder: jam` on the display. The owner confirmed the filament
+really was jammed. This was a true positive, not a false trip, so `detection_length: 2.88`
+stays unchanged.

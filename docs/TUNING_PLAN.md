@@ -779,11 +779,9 @@ Build configs for all three boards are preserved in
 
 ## Open items / backlog
 
-- [ ] Repo is still not a complete backup — untracked machine files:
-      `moonraker.conf` (**check for secrets first**), `KlipperScreen.conf`,
-      `crowsnest.conf`, `timelapse.cfg`, `print_area_bed_mesh.cfg`, `sonar.conf`
-- [ ] `[probe]` is split across three sections in two files — merges fine today,
-      but this fragmentation is exactly how the Z-current bug happened
+- [x] Machine files backed up 2026-11-12: moonraker.conf and KlipperScreen.conf were already tracked in config/moonraker/ (KlipperScreen.conf refreshed; it had 4 auto-saved lines more); crowsnest.conf and sonar.conf added there. No secrets in any of them (only LAN ranges in [authorization]). Not tracked: timelapse.cfg and print_area_bed_mesh.cfg are read-only vendor files from update_manager repos, and klippy.conf does not include them.
+- [x] `[probe]` is split across three sections in two files — merges fine today,
+      but this fragmentation is exactly how the Z-current bug happened -- unified into gantry/z_calibration.cfg 2026-11-12 (ADR-0001); effective values to be checked after the sync
 - [ ] `[safe_z_home] home_xy_position: 150,150` vs bed centre `175,175` — cosmetic
       for a virtual endstop, but inconsistent
 - [ ] Extruder motor documented as `LDO-36STH20-1004AHG` in one file and
@@ -791,6 +789,8 @@ Build configs for all three boards are preserved in
 - [ ] `mainsail.cfg` is managed by Moonraker's update manager and will be
       overwritten on update — expect churn now that it is tracked
 - [x] SSH key auth not set up; blocks reflash and any host-side work
+- [ ] X/Y tensioners are damaged (owner, 2026-11-12): reprint them or fit CNC aluminium gantry parts. Until then a re-run of input shaping or belt work will not improve the Y resonance (mzv @ 35.8 Hz).
+- [x] The three "Probe triggered prior to movement" at 20:47:54 on 2026-11-12 were the owner cleaning the nozzle by hand; not a TAP fault.
 
 ---
 
