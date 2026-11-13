@@ -50,6 +50,7 @@ the record, and this repo has already re-learned the same lesson twice without i
 | [0023](0023-fan5-four-wire-sunon.md) | FAN5 and FAN6 drive 4-wire SUNON fans with hardware PWM | Accepted; header topology corrected 2026-11-11, manta fan target 55 °C 2026-11-12 — see Revisions |
 | [0024](0024-sfs-v2-runout-and-jam.md) | The SFS V2.0 drives a runout switch and a jam encoder, alongside the EBB sensor | Accepted 2026-11-11 |
 | [0025](0025-mainsail-macro-groups-by-state.md) | Mainsail macro groups follow the printer state, and live in the repo | Accepted 2026-11-12 |
+| [0026](0026-tuning-stamp-per-print.md) | Every print stamps its effective tuning in one console line | Accepted 2026-11-12 |
 
 ## Why these exist
 
