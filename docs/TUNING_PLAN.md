@@ -8,7 +8,7 @@ the bed. Improved (but not solved) by adding a bed mesh and a 15 min bed heat.
 
 **Machine:** Voron 2.4r2 350mm · CoreXY · TAP (`probe:z_virtual_endstop`) ·
 Manta M8P v2.0 (STM32H723, CAN bridge) + EBB SB2209 RP2040 (CAN) + CB1 Linux MCU
-· Klipper host `v0.13.0-708-g7046bd00e`
+· Klipper host `v0.13.0-827-g29d4ec2d6` (2026-11-13)
 
 ---
 

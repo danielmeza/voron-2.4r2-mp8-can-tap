@@ -380,3 +380,25 @@ PD14 from reset (entry above). A second plain `RESTART` reached `ready` with
 `output_pin PS_ON` = 1.0. *Takeaway:* when a restart lands in this `query_endstops`
 shutdown, a host `RESTART` is enough. `FIRMWARE_RESTART`, and with it a Manta reset, is
 not needed.
+
+### 2026-11-13 — flashing the Manta remotely cuts mains: Katapult does not hold PS_ON
+
+The 2026-11-13 firmware update (ADR-0008, 708 → 827) flashed the Linux MCU and the EBB
+cleanly. Then `flashtool.py -r` put the Manta into Katapult. Katapult does not drive PD14,
+so `PS_ON` dropped. The relay module cut mains, and the whole printer went dark, CB1
+included. The update script's SSH session died at "stopping klipper…" (01:35:43), and the
+owner confirmed the power-off. After the owner powered it back on, all three MCUs reported
+`v0.13.0-827-g29d4ec2d6`, Klipper was `ready`, `PS_ON` read 1.0 and `QUERY_PROBE` returned
+`probe: open`. The Manta's write had finished inside the module's 7.5 s grace. That was
+luck, not design: a slower write would have left the Manta in Katapult, with nothing
+driving PS_ON on any later power-on.
+
+*This closes the "restart window" open question above for the bootloader case:* any path
+that runs the Manta's bootloader drops mains within 7.5 s. That covers a Katapult
+request, a DFU entry, and a failed application. A plain `RESTART` or a host-side shutdown
+does not (2026-11-12 late-night entry).
+
+*Fix, not yet done:* rebuild Katapult on the Manta with PD14 under "GPIO pins to set on
+bootloader entry", flashed once over DFU at the machine. Until then, the Manta is flashed
+only with the owner present and the relay held on by hand (ADR-0008 revision of the same
+date).

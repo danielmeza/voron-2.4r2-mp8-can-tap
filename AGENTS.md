@@ -34,7 +34,7 @@ a new ADR that supersedes the old one (leave old body intact). See `docs/adr/REA
 
 | Item | Value |
 |---|---|
-| Klipper | `v0.13.0-708-g7046bd00e` (all 3 MCUs match) |
+| Klipper | `v0.13.0-827-g29d4ec2d6` (all 3 MCUs match, since 2026-11-13) |
 | MCUs | CB1 Linux · Manta M8P v2.0 (STM32H723, USB-CAN bridge) · EBB SB2209 RP2040 |
 | CAN | 1000000 bitrate everywhere; Katapult on both CAN boards |
 | Z endstop | `probe:z_virtual_endstop` (TAP on EBB — the **only** Z endstop) |

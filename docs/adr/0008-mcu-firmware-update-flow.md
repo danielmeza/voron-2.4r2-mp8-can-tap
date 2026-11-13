@@ -96,3 +96,16 @@ reachable from the home LAN. No alternative was recorded at the time; the obviou
 are a `NOPASSWD` sudo rule limited to the install, or keeping the step manual as the
 original Consequences describe. Either is open if root key access is ever unwanted.
 Found by the PR 1 review.
+
+### 2026-11-13 — 708 → 827 done; the Manta step cut mains (ADR-0022)
+
+Ran `Update-VoronMcuFirmware.ps1 -Boards all` after Moonraker updated the host to
+`v0.13.0-827-g29d4ec2d6`. The dry run listed all three boards. The Linux MCU went
+through root SSH and the EBB through Katapult over CAN. Both built, verified and returned
+to `ready`. The Manta step requested Katapult and the relay cut mains (ADR-0022, same
+date). After the owner powered the printer back on, all three MCUs read 827, Klipper was
+`ready`, `QUERY_PROBE` returned `probe: open`, and there were no config warnings.
+
+*Consequence for this flow:* the Manta step must not run unattended until Katapult
+holds PD14. The script should refuse `manta` unless an explicit switch says the relay is
+held by hand. Until that guard exists, run only `-Boards linux,ebb` remotely.

@@ -67,6 +67,10 @@ revision maps every split. A new key goes in the file of its concern, nowhere el
   working camera (crowsnest returns 502), so this cannot be checked remotely.
 - **Never flash the Manta first** — it is the USB-CAN bridge and reflashing it drops the
   whole bus. Order: Linux MCU → EBB → Manta. See [ADR-0008](docs/adr/0008-mcu-firmware-update-flow.md).
+- **Never flash the Manta unattended.** Its bootloader (Katapult) does not hold `PS_ON`,
+  so the relay cuts mains within 7.5 s and the CB1 dies mid-flash (happened 2026-11-13).
+  Only with the owner at the machine and the relay held on by hand, until Katapult drives
+  PD14 ([ADR-0022](docs/adr/0022-power-off-relay-on-ps-on.md)).
 
 ---
 
@@ -86,7 +90,7 @@ revision maps every split. A new key goes in the file of its concern, nowhere el
 
 ## Machine facts worth knowing
 
-- Klipper host and all three MCUs pinned to **v0.13.0-708-g7046bd00e**
+- Klipper host and all three MCUs pinned to **v0.13.0-827-g29d4ec2d6** (since 2026-11-13; was 708-g7046bd00e)
 - MCUs: CB1 Linux · Manta M8P v2.0 (STM32H723, **USB-CAN bridge**) · EBB SB2209 RP2040
 - CAN bitrate **1000000** everywhere; Katapult on both CAN boards
 - `[include mainsail.cfg]` is **last**, so mainsail wins every duplicate — extend it via

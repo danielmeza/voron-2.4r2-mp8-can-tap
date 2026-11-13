@@ -6,7 +6,7 @@ three real, working configs captured from the machine — enough to rebuild any 
 firmware without guessing at `make menuconfig`.
 
 Host Klipper is pinned to the same commit these were built from:
-**`v0.13.0-708-g7046bd00e`**. Firmware and host must match, or Klipper logs
+**`v0.13.0-827-g29d4ec2d6`** (since 2026-11-13; was `v0.13.0-708-g7046bd00e`). Firmware and host must match, or Klipper logs
 `deprecated_mcu_code` warnings.
 
 | File | Board | Transport | App offset |
