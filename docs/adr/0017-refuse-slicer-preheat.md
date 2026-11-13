@@ -73,3 +73,16 @@ Rejected alternatives:
 - The root cause stays in the slicer. The checklist for any new project file: select the
   repo printer profile, the *"0.20mm Standard @Voron"* process, and run
   `scripts/verify_slicer_gcode.py` on the output before uploading.
+
+## Revisions
+
+### 2026-11-12 — the refusal message names the hand-preheat case
+
+On 2026-11-12 19:10 a correct Cura file was refused with "hotend target is already 250c, so
+the slicer emitted M104/M109 before PRINT_START". The file had no heating line before
+`PRINT_START`; the 250 °C had been set by hand to load filament. That case was already
+accepted in Consequences, but the message blamed the slicer and named a fix that did not
+apply. The message now gives both cases. For a hand-set target, the print has been
+cancelled and `CANCEL_PRINT` → `TURN_OFF_HEATERS` has switched the heaters off, so starting
+the print again simply works. Otherwise the slicer is the cause, as before. The guard's
+condition and behaviour are unchanged.
