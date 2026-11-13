@@ -83,3 +83,11 @@ the motors energised while standby holds ([ADR-0005](0005-between-session-keep-w
 so a warm restart does not need it. Recorded here instead of rewriting Context: the
 first version of this entry (b3fcc0c) edited Context in place and dropped the
 belt-and-pulley reasoning, which the ADR rules say to keep.
+
+### 2026-11-12 — cooling waits use the part fan
+
+A back-to-back start waited passively from 217.9 °C to 155 °C before the probe could run, with the part fan off. `_NOZZLE_COOL_TO` (in `gantry/z_calibration.cfg`) sets the hotend target to the wanted temperature, turns the part fan on at 255 while the nozzle is hot, waits, then restores the previous fan speed. It is called from `[probe] activate_gcode`, in place of the bare `TEMPERATURE_WAIT`, and from both pre-QGL `M109 S{preheated_z_home_temp}` waits in `PRINT_START` (with `MARGIN=1`).
+
+Trade-off: the fan blows briefly while the nozzle is over the bed, before the first probe. Accepted because the passive wait it removes took minutes.
+
+`_NOZZLE_COOL_TO` only ever *lowers* the hotend target. A nozzle that is hot with its target at 0, as after `TURN_OFF_HEATERS`, cools with the fan and stays off. The first draft set `M104 S150` unconditionally, which would have left the heater on at 150 °C in that case; the draft was caught in review before it was synced.
