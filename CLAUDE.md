@@ -67,10 +67,9 @@ revision maps every split. A new key goes in the file of its concern, nowhere el
   working camera (crowsnest returns 502), so this cannot be checked remotely.
 - **Never flash the Manta first** — it is the USB-CAN bridge and reflashing it drops the
   whole bus. Order: Linux MCU → EBB → Manta. See [ADR-0008](docs/adr/0008-mcu-firmware-update-flow.md).
-- **Never flash the Manta unattended.** Its bootloader (Katapult) does not hold `PS_ON`,
-  so the relay cuts mains within 7.5 s and the CB1 dies mid-flash (happened 2026-11-13).
-  Only with the owner at the machine and the relay held on by hand, until Katapult drives
-  PD14 ([ADR-0022](docs/adr/0022-power-off-relay-on-ps-on.md)).
+- **The Manta's Katapult must keep `INITIAL_PINS="PD14"`** (`firmware/katapult-manta-m8p-h723.config`). Without it, entering the bootloader drops
+  `PS_ON` and the relay cuts mains within 7.5 s, as on 2026-11-13. With it, verified 57 s
+  with the relay in circuit ([ADR-0022](docs/adr/0022-power-off-relay-on-ps-on.md)).
 
 ---
 

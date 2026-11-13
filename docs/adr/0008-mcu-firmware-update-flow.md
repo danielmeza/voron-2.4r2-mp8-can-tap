@@ -111,3 +111,12 @@ holds PD14. The script should refuse `manta` unless an explicit switch says the 
 held by hand. Until that guard exists, run only `-Boards linux,ebb` remotely.
 
 *Guard added the same day:* `Update-VoronMcuFirmware.ps1` now skips `manta` unless `-RelayHeldByHand` is given. Checked with `-Boards all -Force -DryRun` against the machine: it printed the SKIPPED warning, and "Will flash: linux, ebb".
+
+### 2026-11-13 (later) — Manta guard lifted; host Katapult tools updated
+
+The Manta's Katapult now holds PS_ON. The fix was measured at 3.06 V and verified for 57 s
+with the relay in circuit (ADR-0022). So `Update-VoronMcuFirmware.ps1` flashes the Manta
+again without `-RelayHeldByHand`; that switch and the skip are removed. `~/katapult` on the
+CB1, which the script uses, was fast-forwarded from 604b7e5 to 3b973a4. That is the same
+v0.0.1-115 now in both bootloaders. Checked with `-Boards all -Force -DryRun`:
+"Will flash: linux, ebb, manta".

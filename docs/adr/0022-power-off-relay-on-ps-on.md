@@ -437,3 +437,16 @@ above.
 *Still to do:* the same check with the relay back in circuit. Hold the Manta in Katapult
 for more than 20 s, which is beyond the module's 7.5 s cut, and mains must stay on. Only
 then lift the `-RelayHeldByHand` guard and the CLAUDE.md rule.
+
+### 2026-11-13 (10:47) — verified with the relay back in circuit; closed
+
+The owner rewired the PSU through the relay, and the printer cold-started normally (Klipper
+`ready`, `PS_ON` 1.0). With Klipper stopped, the Manta was held in its new Katapult from
+10:47:31. The CB1 answered SSH at +7, +14, +23, +35, +42, +50 and +57 s, against the
+module's 7.5 s cut. Mains stayed on. Klipper 827 was written back, and all three MCUs, the
+`PS_ON` read of 1.0 and `probe: open` came back as before.
+
+**Rule from now on:** whenever the Manta's Katapult is rebuilt, it keeps
+`CONFIG_INITIAL_PINS="PD14"` (`firmware/katapult-manta-m8p-h723.config`). Without it, any
+bootloader entry cuts mains within 7.5 s. The updater's `-RelayHeldByHand` guard is
+removed (ADR-0008), and CLAUDE.md Rule 5 now states this rule instead.
