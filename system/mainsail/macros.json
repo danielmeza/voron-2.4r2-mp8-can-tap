@@ -1,0 +1,389 @@
+{
+  "mode": "expert",
+  "macrogroups": {
+    "8b1f0c2e-4d6a-4f5e-9a1b-2c3d4e5f6a01": {
+      "name": "Layer pause",
+      "color": "warning",
+      "colorCustom": "#fff",
+      "showInStandby": false,
+      "showInPrinting": true,
+      "showInPause": true,
+      "macros": [
+        {
+          "pos": 1,
+          "name": "SET_PAUSE_NEXT_LAYER",
+          "color": "group",
+          "showInStandby": false,
+          "showInPrinting": true,
+          "showInPause": false
+        },
+        {
+          "pos": 2,
+          "name": "SET_PAUSE_AT_LAYER",
+          "color": "group",
+          "showInStandby": false,
+          "showInPrinting": true,
+          "showInPause": true
+        }
+      ]
+    },
+    "8b1f0c2e-4d6a-4f5e-9a1b-2c3d4e5f6a02": {
+      "name": "Prepare",
+      "color": "primary",
+      "colorCustom": "#fff",
+      "showInStandby": true,
+      "showInPrinting": false,
+      "showInPause": false,
+      "macros": [
+        {
+          "pos": 1,
+          "name": "CONDITIONAL_HOME",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        },
+        {
+          "pos": 2,
+          "name": "G32",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        },
+        {
+          "pos": 3,
+          "name": "PREHEAT_ABS",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        },
+        {
+          "pos": 4,
+          "name": "STANDBY_WARM",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        },
+        {
+          "pos": 5,
+          "name": "STOP_STANDBY_WARM",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        }
+      ]
+    },
+    "0f761301-909b-4b75-9154-06e8c2bdce91": {
+      "name": "Toolhead",
+      "color": "info",
+      "colorCustom": "#fff",
+      "showInStandby": true,
+      "showInPrinting": false,
+      "showInPause": true,
+      "macros": [
+        {
+          "pos": 1,
+          "name": "PARK_FRONT",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": true
+        },
+        {
+          "pos": 2,
+          "name": "PARK_REAR",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": true
+        },
+        {
+          "pos": 3,
+          "name": "CENTER",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        },
+        {
+          "pos": 4,
+          "name": "PARK",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        }
+      ]
+    },
+    "f08e293b-18c5-4b32-b96f-400130a08882": {
+      "name": "Filament",
+      "color": "success",
+      "colorCustom": "#fff",
+      "showInStandby": true,
+      "showInPrinting": false,
+      "showInPause": true,
+      "macros": [
+        {
+          "pos": 1,
+          "name": "LOAD_FILAMENT",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": true
+        },
+        {
+          "pos": 2,
+          "name": "UNLOAD_FILAMENT",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": true
+        },
+        {
+          "pos": 3,
+          "name": "CLEAN_NOZZLE",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        }
+      ]
+    },
+    "b282f622-8b82-4aa7-b961-17591c830dd0": {
+      "name": "Fans",
+      "color": "custom",
+      "colorCustom": "#0043F8",
+      "showInStandby": true,
+      "showInPrinting": true,
+      "showInPause": true,
+      "macros": [
+        {
+          "pos": 1,
+          "name": "PARTS_FAN_ON",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 2,
+          "name": "PARTS_FAN_MAX",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 3,
+          "name": "PARTS_FAN_OFF",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 4,
+          "name": "BED_FANS_FAST",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 5,
+          "name": "BED_FANS_LOW",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 6,
+          "name": "BED_FANS_OFF",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 7,
+          "name": "SET_EXHAUST_FAN",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": true
+        }
+      ]
+    },
+    "8b1f0c2e-4d6a-4f5e-9a1b-2c3d4e5f6a03": {
+      "name": "Lights",
+      "color": "custom",
+      "colorCustom": "#FFB300",
+      "showInStandby": true,
+      "showInPrinting": true,
+      "showInPause": true,
+      "macros": [
+        {
+          "pos": 1,
+          "name": "CASE_LIGHTS",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 2,
+          "name": "SET_NOZZLE_LEDS_ON",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 3,
+          "name": "SET_NOZZLE_LEDS_OFF",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 4,
+          "name": "SET_LOGO_LEDS_OFF",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        }
+      ]
+    },
+    "8b1f0c2e-4d6a-4f5e-9a1b-2c3d4e5f6a04": {
+      "name": "Calibration",
+      "color": "warning",
+      "colorCustom": "#fff",
+      "showInStandby": true,
+      "showInPrinting": false,
+      "showInPause": false,
+      "macros": [
+        {
+          "pos": 1,
+          "name": "SQUISH_TEST_GRID",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        },
+        {
+          "pos": 2,
+          "name": "TEST_SPEED",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        }
+      ]
+    },
+    "8b1f0c2e-4d6a-4f5e-9a1b-2c3d4e5f6a05": {
+      "name": "Power",
+      "color": "error",
+      "colorCustom": "#fff",
+      "showInStandby": true,
+      "showInPrinting": false,
+      "showInPause": false,
+      "macros": [
+        {
+          "pos": 1,
+          "name": "TURN_OFF_HEATERS",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        },
+        {
+          "pos": 2,
+          "name": "POWER_OFF",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": false,
+          "showInPause": false
+        }
+      ]
+    },
+    "8b1f0c2e-4d6a-4f5e-9a1b-2c3d4e5f6a06": {
+      "name": "Diagnostics",
+      "color": "secondary",
+      "colorCustom": "#fff",
+      "showInStandby": true,
+      "showInPrinting": true,
+      "showInPause": true,
+      "macros": [
+        {
+          "pos": 1,
+          "name": "DUMP_VARIABLES",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 2,
+          "name": "GET_VARIABLE",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        },
+        {
+          "pos": 3,
+          "name": "PRINT_TAP_STATE",
+          "color": "group",
+          "showInStandby": true,
+          "showInPrinting": true,
+          "showInPause": true
+        }
+      ]
+    }
+  },
+  "hiddenMacros": [
+    "BED_FANS_VARS",
+    "CANCEL_HEAT_SOAK",
+    "CANCEL_PRINT",
+    "HEAT_SOAK",
+    "HEAT_SOAK_RESUME",
+    "Home_Level",
+    "M109",
+    "M140",
+    "M141",
+    "M190",
+    "M201",
+    "M203",
+    "M205",
+    "M600",
+    "M900",
+    "Party_Off",
+    "Party_On",
+    "PAUSE",
+    "PRINT_END",
+    "PRINT_START",
+    "RESUME",
+    "RETRACT_FILAMENT",
+    "SET_HEATER_TEMPERATURE",
+    "SET_PRINT_STATS_INFO",
+    "SHOW_MESSAGE",
+    "STATUS_BUSY",
+    "STATUS_CALIBRATING_Z",
+    "STATUS_CLEANING",
+    "STATUS_HEATING",
+    "STATUS_HOMING",
+    "STATUS_LEVELING",
+    "STATUS_MESHING",
+    "STATUS_OFF",
+    "STATUS_PRINTING",
+    "STATUS_READY",
+    "STOP_HEAT_SOAK"
+  ]
+}
