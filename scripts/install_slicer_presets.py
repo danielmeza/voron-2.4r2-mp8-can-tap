@@ -10,11 +10,14 @@ Why this exists: OrcaSlicer 2.4.2's "Import Configs" silently dropped the proces
 from the bundle three times (2026-09-19), while its own user presets are plain files
 under user/default/{machine,filament,process}/. Writing those files directly is what
 the GUI does when you click "save preset", so it is the reliable path. Cura's materials
-are plain .xml.fdm_material files in its materials/ folder.
+are plain .xml.fdm_material files in its materials/ folder, and its custom profiles are
+.inst.cfg pairs (global + extruder) in quality_changes/.
 
 Both apps must be CLOSED: they hold presets in memory and rewrite the folder on exit.
 Existing files with the same name are backed up next to the user folder before being
-replaced. Sources: slicer_profiles/orcaslicer/src/ and slicer_profiles/cura/*.xml.fdm_material.
+replaced. Sources: slicer_profiles/orcaslicer/src/, slicer_profiles/cura/*.xml.fdm_material
+and slicer_profiles/cura/quality_changes/*.inst.cfg.  Cura is looked for in both the
+AppImage/native data folder (~/.local/share/cura) and the Flatpak one.
 """
 import json
 import os
@@ -29,7 +32,8 @@ ORCA_SRC = os.path.join(ROOT, "slicer_profiles", "orcaslicer", "src")
 CURA_SRC = os.path.join(ROOT, "slicer_profiles", "cura")
 HOME = os.path.expanduser("~")
 ORCA_USER = os.path.join(HOME, ".var/app/com.orcaslicer.OrcaSlicer/config/OrcaSlicer/user/default")
-CURA_DATA = os.path.join(HOME, ".var/app/com.ultimaker.cura/data/cura")
+CURA_DATA_DIRS = [os.path.join(HOME, ".local/share/cura"),                 # AppImage / native
+                  os.path.join(HOME, ".var/app/com.ultimaker.cura/data/cura")]  # Flatpak
 # OrcaSlicer stores a .info beside each user preset; base_id is the parent's setting_id.
 BASE_IDS = {"Generic ABS @System": "W0LP8Ah5MHMzogvV", "0.20mm Standard @Voron": "woKQ9fsFs3B9vQCS"}
 KIND_DIR = {"printer": "machine", "filament": "filament", "process": "process"}
@@ -82,27 +86,34 @@ def install_orca(dry):
 
 
 def install_cura(dry):
-    # Only numeric version folders (5.13, 5.14 ...); backups and other folders live here too.
-    versions = sorted((v for v in os.listdir(CURA_DATA) if re.fullmatch(r"\d+\.\d+", v) and os.path.isdir(os.path.join(CURA_DATA, v))),
-                      key=lambda v: tuple(int(x) for x in v.split("."))) if os.path.isdir(CURA_DATA) else []
-    if not versions:
-        print("Cura data folder not found:", CURA_DATA)
-        return 1
     if (n := running(["cura", "UltiMaker-Cura", "cura_app.py"])):
         print(f"ERROR: {n} is running; close Cura first")
         return 1
-    mats = os.path.join(CURA_DATA, versions[-1], "materials")
+    targets = []
+    for data in CURA_DATA_DIRS:
+        # Only numeric version folders (5.13, 5.14 ...); backups and other folders live here too.
+        versions = sorted((v for v in os.listdir(data) if re.fullmatch(r"\d+\.\d+", v) and os.path.isdir(os.path.join(data, v))),
+                          key=lambda v: tuple(int(x) for x in v.split("."))) if os.path.isdir(data) else []
+        if versions:
+            targets.append(os.path.join(data, versions[-1]))
+    if not targets:
+        print("Cura data folder not found in:", ", ".join(CURA_DATA_DIRS))
+        return 1
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    for fn in sorted(os.listdir(CURA_SRC)):
-        if not fn.endswith(".xml.fdm_material"):
-            continue
-        dst = os.path.join(mats, fn)
-        print(f"{'would write' if dry else 'write'} {os.path.relpath(dst, HOME)}")
-        if dry:
-            continue
-        os.makedirs(mats, exist_ok=True)
-        backup(dst, stamp, os.path.join(CURA_DATA, versions[-1]))  # .../cura/<version>/backup-install-*
-        shutil.copy2(os.path.join(CURA_SRC, fn), dst)
+    sources = [(CURA_SRC, ".xml.fdm_material", "materials"),
+               (os.path.join(CURA_SRC, "quality_changes"), ".inst.cfg", "quality_changes")]
+    for target in targets:
+        for src_dir, ext, sub in sources:
+            for fn in sorted(os.listdir(src_dir)) if os.path.isdir(src_dir) else []:
+                if not fn.endswith(ext):
+                    continue
+                dst = os.path.join(target, sub, fn)
+                print(f"{'would write' if dry else 'write'} {os.path.relpath(dst, HOME)}")
+                if dry:
+                    continue
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                backup(dst, stamp, target)  # .../cura/<version>/backup-install-*
+                shutil.copy2(os.path.join(src_dir, fn), dst)
     return 0
 
 

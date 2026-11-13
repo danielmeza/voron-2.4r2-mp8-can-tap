@@ -216,3 +216,37 @@ on upload.
 
 `CHAMBER=` is omitted from the Cura start gcode (no standard Cura placeholder for it
 without enclosure support) — `PRINT_START` defaults it to 40 °C when absent.
+
+## Cura — quality profiles (`cura/quality_changes/`, 2026-11-12)
+
+Five custom profiles for Cura's **built-in "Voron2 350"** printer (definition `voron2_base`,
+quality type `normal`), which is the printer the Cura install actually uses. Each is a
+global + extruder `.inst.cfg` pair; `python3 scripts/install_slicer_presets.py --cura`
+copies them (Cura closed) into `quality_changes/` of the AppImage (`~/.local/share/cura`)
+and Flatpak data folders.
+
+| Profile | Layer | Walls | Top / bottom | Infill | Outer / inner wall / infill mm/s | Volumetric at infill |
+|---|---|---|---|---|---|---|
+| Repo 0.10 Fina | 0.10 | 3 | 0.8 / 0.8 mm | 15 % gyroid | 80 / 150 / 200 | 9.0 mm³/s |
+| Repo 0.15 Detalle | 0.15 | 3 | 0.9 / 0.75 mm | 15 % gyroid | 100 / 180 / 220 | 14.9 mm³/s |
+| Repo 0.20 Estandar | 0.20 | 3 | 1.0 / 0.8 mm | 15 % gyroid | 120 / 200 / 250 | 22.5 mm³/s |
+| Repo 0.20 Piezas Voron | 0.20 | 4 | 1.0 / 1.0 mm (5 layers) | 40 % gyroid | 100 / 180 / 220 | 19.8 mm³/s |
+| Repo 0.28 Borrador | 0.28 | 3 | 1.12 / 0.84 mm | 12 % gyroid | 120 / 160 / 170 | 21.4 mm³/s |
+
+Common to all, and why:
+
+- **No bed, nozzle, retraction distance or part-fan values.** Those belong to the material.
+  The owner's old `Voron ABS Fast` profile pinned the bed at 100 °C and retraction at 0.75 mm,
+  so changing the material never changed them (found 2026-11-12 in a sliced file: first layer
+  80 °C from the material, `M140 S100` from layer 1).
+- **Accelerations ≤ 5000, outer wall 3000 (2500 on Fina), first layer 1500.** The printer's
+  `max_accel` is 5700 and Klipper does not clamp `M204`. The old profile emitted `M204 S7000`.
+  The Y shaper (mzv 35.8 Hz, smoothing 0.159 at 5000) suggests about 3700 for clean corners,
+  hence the slower outer wall.
+- **Travel 400 mm/s** = `max_velocity`; the old 500 was being clipped by Klipper.
+- **Volumetric ≤ 23 mm³/s**, the Hyper ABS / Dragon HF limit above.
+- **First layer 0.25 mm, 120 % line width, 40 mm/s, fan 0 %** (`cool_fan_speed_0`). The old
+  setup ran the first ABS layer at 46 % fan.
+- Z-hop 0.4 mm, seam at the sharpest corner, skirt, supports off, jerk off (Klipper ignores M205).
+- Layer progress (`M73`) is still not emitted: add Cura's *Display Progress On LCD*
+  post-processing script, as `scripts/verify_slicer_gcode.py` asks.
